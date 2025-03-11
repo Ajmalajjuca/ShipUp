@@ -7,13 +7,15 @@ import { DriverRepositoryImpl } from '../../infrastructure/repositories/driverRe
 import {FileStorageServiceImpl} from '../../application/services/fileStorageServiceImpl'
 import { OtpService } from '../../application/services/otpService';
 import { EmailService } from '../../application/services/emailService';
+import { verify } from 'crypto';
+import { VerifyDriverUseCase } from "../../domain/use-cases/driver/VerifyDriver";
 
 const driverRepository = new  DriverRepositoryImpl()
 const fileStorageService = new FileStorageServiceImpl()
 const otpService = new OtpService();
 const emailService = new EmailService();
 
-
+const verifyDriverUseCase = new VerifyDriverUseCase(driverRepository);
 const registerDriver = new RegisterDriverUseCase(driverRepository,fileStorageService);
 const loginDriver = new LoginDriver(driverRepository,otpService,emailService)
 
@@ -43,7 +45,6 @@ export const DriverController= {
             };
 
             const result = await registerDriver.execute(registerDriverDTO);
-            console.log('result:>', result.error);
 
             if (!result.success) {
                 res.status(401).json({ error: result.error });
@@ -79,7 +80,6 @@ export const DriverController= {
           }
           
           const result = await loginDriver.execute(email);
-          console.log('result:>',result);
           
           if (result.success) {
             res.status(200).json(result);
@@ -113,7 +113,6 @@ export const DriverController= {
           }
           
           const{ isValid, user } = await otpService.verifyOtp(email, otp);
-          console.log('isValid:',isValid,'user',user);
           
           
           if (isValid||user) {
@@ -155,6 +154,23 @@ export const DriverController= {
             success: false, 
             message: 'Internal server error' 
           });
+        }
+      },
+      verifydoc: async(req:Request,res:Response):Promise<void>=>{
+        try {
+          const { email } = req.query;
+    
+          if (typeof email !== "string") {
+            res.status(400).json({ success: false, message: "Invalid email format" });
+            return;
+          }
+    
+          const result = await verifyDriverUseCase.execute(email);
+          console.log('result>>',result);
+          
+          res.status(result.success ? 200 : 404).json(result);
+        } catch (error) {
+          res.status(500).json({ success: false,  });
         }
       }
 }

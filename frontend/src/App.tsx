@@ -12,16 +12,20 @@ import { restoreSession } from './Redux/services/authService';
 import { AppDispatch, RootState } from './Redux/store';
 import PartnerReg from './components/driver/PartnerReg';
 import PartnerLog from './components/driver/PartnerLog';
+import Verification from './components/driver/Verification';
+import DeliveryPartnerDashboard from './components/driver/components/DeliveryPartnerDashboard';
 
 const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log('PrivateRoute - user:', user);
   return user ? children : <Navigate to="/login" />;
+};
+const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
+  const { email } = useSelector((state: RootState) => state.driver);
+  return email ? children : <Navigate to="/partner" />;
 };
 
 const AuthRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log('AuthRoute - user:', user);
   return user ? <Navigate to="/home" /> : children;
 };
 
@@ -132,7 +136,7 @@ function App() {
         }
       />
       <Route
-        path="/RegistrationLayout"
+        path="/register"
         element={
 
           <PartnerReg />
@@ -144,6 +148,15 @@ function App() {
         element={
 
           <PartnerLog/>
+
+        }
+      />
+      <Route
+        path="/partner/dashboard"
+        element={
+          <PrivatePartnerRoute>
+            <DeliveryPartnerDashboard/>
+          </PrivatePartnerRoute>
 
         }
       />

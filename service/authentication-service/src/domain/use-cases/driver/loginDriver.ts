@@ -21,7 +21,6 @@ export class LoginDriver {
           message: 'Email not registered as a delivery partner' 
         };
       }
-      console.log(driver);
       
 
 
@@ -36,7 +35,7 @@ export class LoginDriver {
       await this.driverRepository.updateOtp(email, otp, otpExpiry);
       
       // Send OTP email
-      await this.emailService.sendOtpEmail(email,otp);
+      // await this.emailService.sendOtpEmail(email,otp);
       console.log(`OTP for ${email}: ${otp}`);
       return { 
         success: true, 

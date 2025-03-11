@@ -20,6 +20,9 @@ const DriverSchema = new Schema<Driver>(
     insuranceDocPath: { type: String, required: true },
     pollutionDocPath: { type: String, required: true },
     profilePicturePath: { type: String, required: true },
+    PersonalDocuments:{type:Boolean,default:false},
+    VehicleDetails:{type:Boolean,default:false},
+    BankDetails:{type:Boolean,default:false},
   },
   {
     timestamps: true,

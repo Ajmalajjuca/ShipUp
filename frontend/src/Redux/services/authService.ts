@@ -4,7 +4,6 @@ import { loginSuccess, logout, restoreSessionStart, restoreSessionEnd } from '..
 import { AppDispatch } from '../store';
 
 export const restoreSession = async (dispatch: AppDispatch) => {
-  console.log('restoreSession - Starting');
   const token = localStorage.getItem('token');
   const storedUser = localStorage.getItem('user');
   const pendingUser = localStorage.getItem('pendingUser');

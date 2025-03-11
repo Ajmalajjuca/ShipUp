@@ -6,7 +6,6 @@ import { RootState } from "../../Redux/store";
 const NavBar = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log("user:", user);
 
   return (
     <nav className="bg-white p-4 shadow-sm">
@@ -55,7 +54,7 @@ const NavBar = () => {
                 <User className="w-6 h-6 text-gray-800" />
               </button>
               <button className="bg-indigo-900 text-white py-2 px-4 rounded-md hover:bg-indigo-800"
-              onClick={() => navigate("/Partner")}
+              onClick={() => navigate("/partner")}
               >
                 Delivery Partner
               </button>

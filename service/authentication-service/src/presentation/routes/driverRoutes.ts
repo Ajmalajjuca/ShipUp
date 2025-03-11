@@ -24,5 +24,6 @@ router.post(
 router.post('/send-otp', DriverController.sendOtp);
 router.post('/verify-otp', DriverController.verifyOtp);
 router.post('/resend-otp', DriverController.resendOtp);
+router.get('/verify-doc', DriverController.verifydoc);
 
 export default router;

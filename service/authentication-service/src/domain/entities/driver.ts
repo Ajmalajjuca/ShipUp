@@ -24,6 +24,10 @@ export class Driver {
         public pollutionDocPath: string,
         public profilePicturePath: string,
 
+        public BankDetails:boolean,
+        public VehicleDetails:boolean,
+        public PersonalDocuments:boolean,
+
         public createdAt?: Date,
         public updatedAt?: Date,
     ) { }

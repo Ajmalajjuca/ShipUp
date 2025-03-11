@@ -1,5 +1,9 @@
 import { useState } from "react";
 import axios from "axios";
+import { useDispatch } from "react-redux";
+import { setEmailId } from "../../Redux/slices/driverSlice"; // Import Redux action
+import { useNavigate } from 'react-router-dom'
+
 
 const PartnerLog: React.FC = () => {
   // State management
@@ -9,39 +13,41 @@ const PartnerLog: React.FC = () => {
   const [step, setStep] = useState<"email" | "otp" | "success">("email");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const navigate = useNavigate()
 
+  const dispatch = useDispatch()
   // Handle email submission
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basic validation
     const newErrors: Record<string, string> = {};
-    
+
     if (!email) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = "Please enter a valid email address";
     }
-    
+
     setErrors(newErrors);
-    
+
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       setMessage("");
-      
+
       try {
         // Call API to verify email and send OTP
         const response = await axios.post("http://localhost:3001/api/drivers/send-otp", { email });
 
         if (response.data.success) {
+          dispatch(setEmailId(email))
           setStep("otp");
           setMessage("OTP sent successfully to your email");
         } else {
           setErrors({ email: response.data.message || "Failed to send OTP" });
         }
       } catch (error: any) {
-        console.log('error:',error);
-        
+
         if (error.response && error.response.status === 404) {
           setErrors({ email: "Email not found. This email is not registered as a delivery partner." });
         } else {
@@ -56,37 +62,36 @@ const PartnerLog: React.FC = () => {
   // Handle OTP verification
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basic validation
     const newErrors: Record<string, string> = {};
-    
+
     if (!otp) {
       newErrors.otp = "OTP is required";
     } else if (otp.length !== 6 || !/^\d+$/.test(otp)) {
       newErrors.otp = "Please enter a valid 6-digit OTP";
     }
-    
+
     setErrors(newErrors);
-    
+
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
       setMessage("");
-      
+
       try {
         // Call API to verify OTP
         const response = await axios.post("http://localhost:3001/api/drivers/verify-otp", { email, otp });
-        console.log('response:>',response);
-        
+
         if (response.data.success) {
           // Store the token
           localStorage.setItem("token", response.data.token);
-          
+
           setStep("success");
           setMessage("Login successful!");
-          
+
           // Redirect to home page after successful verification
           setTimeout(() => {
-            window.location.href = "/driver/dashboard";
+            navigate("/partner/dashboard")
           }, 1500);
         } else {
           setErrors({ otp: response.data.message || "Invalid OTP" });
@@ -103,10 +108,10 @@ const PartnerLog: React.FC = () => {
   const handleResendOtp = async () => {
     setIsSubmitting(true);
     setMessage("");
-    
+
     try {
       const response = await axios.post("/api/drivers/resend-otp", { email });
-      
+
       if (response.data.success) {
         setMessage("New OTP sent successfully");
       } else {
@@ -126,7 +131,7 @@ const PartnerLog: React.FC = () => {
         <h2 className="text-2xl font-semibold text-gray-800 mb-2">Partner Login</h2>
         <p className="text-gray-600">Enter your registered email to receive an OTP</p>
       </div>
-      
+
       <div className="mb-6">
         <label className="block text-sm text-gray-600 mb-1">Email Address</label>
         <input
@@ -135,26 +140,35 @@ const PartnerLog: React.FC = () => {
           placeholder="e.g. partner@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={`w-full px-4 py-3 text-sm rounded-lg border ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
-          } focus:border-red-400 focus:ring-1 focus:ring-red-200 outline-none transition-all`}
+          className={`w-full px-4 py-3 text-sm rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'
+            } focus:border-red-400 focus:ring-1 focus:ring-red-200 outline-none transition-all`}
           disabled={isSubmitting}
         />
         {errors.email && (
           <p className="text-xs text-red-500 mt-1">{errors.email}</p>
         )}
       </div>
-      
+
       <button
         type="submit"
-        className={`w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors ${
-          isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
-        }`}
+        className={`w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+          }`}
         disabled={isSubmitting}
       >
         {isSubmitting ? 'Sending OTP...' : 'Next'}
       </button>
+
+      {/* Register Link */}
+      <div className="mt-4 text-center">
+        <p className="text-sm text-gray-600">
+          Don't have a partner account?
+          <a  onClick={()=> navigate('/register')} className="text-red-500 hover:underline ml-1">
+            Register here
+          </a>
+        </p>
+      </div>
     </form>
+
   );
 
   // Render OTP step
@@ -164,13 +178,13 @@ const PartnerLog: React.FC = () => {
         <h2 className="text-2xl font-semibold text-gray-800 mb-2">Verify Your Email</h2>
         <p className="text-gray-600">Enter the 6-digit code sent to {email}</p>
       </div>
-      
+
       {message && (
         <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
           {message}
         </div>
       )}
-      
+
       <div className="mb-6">
         <label className="block text-sm text-gray-600 mb-1">OTP Code</label>
         <input
@@ -179,9 +193,8 @@ const PartnerLog: React.FC = () => {
           placeholder="Enter 6-digit OTP"
           value={otp}
           onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-          className={`w-full px-4 py-3 text-sm rounded-lg border ${
-            errors.otp ? 'border-red-500' : 'border-gray-300'
-          } focus:border-red-400 focus:ring-1 focus:ring-red-200 outline-none transition-all`}
+          className={`w-full px-4 py-3 text-sm rounded-lg border ${errors.otp ? 'border-red-500' : 'border-gray-300'
+            } focus:border-red-400 focus:ring-1 focus:ring-red-200 outline-none transition-all`}
           disabled={isSubmitting}
           maxLength={6}
         />
@@ -189,17 +202,16 @@ const PartnerLog: React.FC = () => {
           <p className="text-xs text-red-500 mt-1">{errors.otp}</p>
         )}
       </div>
-      
+
       <button
         type="submit"
-        className={`w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors ${
-          isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
-        }`}
+        className={`w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+          }`}
         disabled={isSubmitting}
       >
         {isSubmitting ? 'Verifying...' : 'Verify & Login'}
       </button>
-      
+
       <div className="mt-4 flex justify-between items-center">
         <button
           type="button"
@@ -209,7 +221,7 @@ const PartnerLog: React.FC = () => {
         >
           Back to Email
         </button>
-        
+
         <button
           type="button"
           className="text-sm text-blue-500 hover:text-blue-700"
@@ -239,7 +251,7 @@ const PartnerLog: React.FC = () => {
       </div>
     </div>
   );
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-100 to-red-300 flex items-center justify-center p-4 overflow-hidden">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 rounded-xl overflow-hidden shadow-2xl bg-white lg:max-h-[90vh]">

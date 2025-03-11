@@ -46,7 +46,6 @@ export class OtpService {
     try {
       
       const storedHashedOtp = await this.redisClient.get(`${email}:otp`);
-      console.log('email:>',email,'storedHashedOtp:',storedHashedOtp);
       if (!storedHashedOtp) {
         return { isValid: false };
       }

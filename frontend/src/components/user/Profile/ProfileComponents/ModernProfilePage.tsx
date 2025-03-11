@@ -10,7 +10,6 @@ const ModernProfilePage = () => {
   const [isHovering, setIsHovering] = useState('');
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-  console.log('user>>',user);
   
   
   // Sample user data (use actual data from Redux in production)

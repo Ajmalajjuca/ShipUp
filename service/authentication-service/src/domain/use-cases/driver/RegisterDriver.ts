@@ -20,6 +20,9 @@ export interface RegisterDriverDTO {
     insuranceDoc: Express.Multer.File;
     pollutionDoc: Express.Multer.File;
     profilePicture: Express.Multer.File;
+    PersonalDocuments: boolean
+    VehicleDetails: boolean
+    BankDetails: boolean
 }
 
 export class RegisterDriverUseCase {
@@ -31,7 +34,6 @@ export class RegisterDriverUseCase {
     async execute(registerDriverDTO: RegisterDriverDTO): Promise<{ driver?: Driver; success: boolean; error?: string }> {
 
         const existingDriver = await this.driverRepository.findByMobileNumber(registerDriverDTO.mobileNumber);
-        console.log('existingDriver:>', existingDriver);
         if (existingDriver) {
             return { success: false, error: 'A user with this email already exists' };
         }
@@ -63,6 +65,9 @@ export class RegisterDriverUseCase {
             insuranceDocPath,
             pollutionDocPath,
             profilePicturePath,
+            PersonalDocuments:registerDriverDTO.PersonalDocuments,
+            VehicleDetails:registerDriverDTO.VehicleDetails,
+            BankDetails:registerDriverDTO.BankDetails,
             createdAt: new Date(),
             updatedAt: new Date()
         };

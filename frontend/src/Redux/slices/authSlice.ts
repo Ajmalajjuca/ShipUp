@@ -23,7 +23,6 @@ const authSlice = createSlice({
       state.error = null;
     },
     loginSuccess(state, action: PayloadAction<{ user: any; token: string }>) {
-      console.log('authSlice - loginSuccess called with:', action.payload);
       state.loading = false;
       state.user = action.payload.user;
       state.token = action.payload.token;

@@ -17,7 +17,6 @@ const PartnerReg = () => {
     const [completedDocuments, setCompletedDocuments] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
-    console.log('formData:', formData);
 
 
     const handleFormSubmit = (data: Partial<DriverRegistrationData>) => {
@@ -105,11 +104,9 @@ const PartnerReg = () => {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            console.log('response:>', response);
 
 
             if (response.data.status === "success") {
-                console.log('>>>');
 
                 setCurrentStep('verification');
             } else {

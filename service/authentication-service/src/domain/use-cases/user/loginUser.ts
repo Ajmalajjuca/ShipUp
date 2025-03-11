@@ -14,7 +14,6 @@ export class LoginUser {
     if (!user) return null;
     
     const isPasswordValid = bcrypt.compare(password, user.password);
-    console.log('password:',password,'user.password:',user.password);
     if (!isPasswordValid) return null;
 
     return user;

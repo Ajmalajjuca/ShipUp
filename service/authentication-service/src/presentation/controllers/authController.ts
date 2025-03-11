@@ -51,7 +51,6 @@ export const authController: AuthController = {
       }
 
       const phoneRegex = /^(?:\+91)?[6-9]\d{9}$/;
-      console.log(!phoneRegex.test(phone));
       if (!phoneRegex.test(phone)) {
         
         res.status(400).json({ error: 'Invalid phone number format.' });
@@ -88,7 +87,6 @@ export const authController: AuthController = {
       }
 
       const user = await loginUser.execute(email, password);
-      console.log('user:>',user);
       
       
       if (!user) {

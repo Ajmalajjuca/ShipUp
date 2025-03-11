@@ -8,7 +8,6 @@ const registerDriver = new RegisterDriver(driverRepo);
 export const driverController = {
   register: async (req: Request, res: Response) => {
     const { name, license } = req.body;
-    console.log(name,license);
     
     const driver = await registerDriver.execute(name, license);
     res.status(201).json(driver);

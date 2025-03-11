@@ -3,8 +3,8 @@ import { RegistrationForm } from "./components/RegistrationForm";
 import { VehicleDetailsForm } from "./components/VehicleDetailsForm";
 import { DocumentItem } from "./types";
 
-export const DOCUMENT_STEPS: DocumentItem[] = [
-    { id: 'personal', title: 'Personal Documents', isCompleted: false, formComponent: RegistrationForm },
-    { id: 'vehicle', title: 'Vehicle Details', isCompleted: false, formComponent: VehicleDetailsForm },
-    { id: 'bank', title: 'Bank Details', isCompleted: false, formComponent: BankDetailsForm },
-];
+export const DOCUMENT_STEPS = [
+    { id: 'PersonalDocuments', title: 'Personal Documents', isCompleted: false, formComponent: RegistrationForm },
+    { id: 'VehicleDetails', title: 'Vehicle Details', isCompleted: false, formComponent: VehicleDetailsForm },
+    { id: 'BankDetails', title: 'Bank Details', isCompleted: false, formComponent: BankDetailsForm },
+] as const;  // This ensures TypeScript infers the exact string values

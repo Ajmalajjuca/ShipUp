@@ -65,15 +65,7 @@ export class DriverRepositoryImpl implements DriverRepository {
         return null;
       }
       
-      // const isValid = this.otpService.verifyOtp(
-      //   driver.otp,
-      //   providedOtp,
-      //   driver.otpExpiry
-      // );
-      
-      // if (!isValid) {
-      //   return null;
-      // }
+
       
       // Clear OTP after successful verification
       await DriverModel.updateOne(

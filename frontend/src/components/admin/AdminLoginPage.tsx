@@ -1,10 +1,13 @@
 import axios from "axios";
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 
 const AdminLoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +22,7 @@ const AdminLoginPage: React.FC = () => {
       if (response.status === 200) {
         console.log("Login successful", response.data);
         localStorage.setItem("token", response.data.token); // Store token
+        navigate('/admin/dashboard')
         alert("Login successful!");
         // Redirect or navigate to the dashboard (optional)
       }

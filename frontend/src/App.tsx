@@ -13,8 +13,8 @@ import { AppDispatch, RootState } from './Redux/store';
 import PartnerReg from './components/driver/PartnerReg';
 import PartnerLog from './components/driver/PartnerLog';
 import Verification from './components/driver/Verification';
-import DeliveryPartnerDashboard from './components/driver/components/DeliveryPartnerDashboard';
 import AdminLoginPage from './components/admin/AdminLoginPage';
+import AdminDashboard from './components/admin/dashboard/AdminDashboard';
 
 const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -165,6 +165,14 @@ function App() {
         element={
           
             <AdminLoginPage/>
+          
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          
+            <AdminDashboard/>
           
         }
       />

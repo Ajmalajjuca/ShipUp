@@ -13,18 +13,7 @@ interface NavItemProps {
   onClick: () => void;
 }
 
-interface DeliveryStatus {
-  completed: number;
-  pending: number;
-  total: number;
-}
 
-interface EarningsData {
-  today: number;
-  week: number;
-  month: number;
-  trend: number;
-}
 
 // Navigation Item Component
 const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => (
@@ -455,15 +444,6 @@ const DeliveryPartnerDashboard: React.FC = () => {
 };
 
 // Add some CSS animations
-const styles = `
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-in-out;
-  }
-`;
+
 
 export default DeliveryPartnerDashboard;

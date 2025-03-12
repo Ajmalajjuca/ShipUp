@@ -1,6 +1,9 @@
 // File: DeliveryPartnerDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { Bell, User, Package, Home, HelpCircle, DollarSign, Info, ChevronRight, Map, Clock, Star, Calendar, Truck } from 'lucide-react';
+import { Bell, User, Package, Home, HelpCircle, DollarSign, Info, ChevronRight, Map, Clock, Star, Calendar, Truck, LogOut } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { clearAuth } from '../../../Redux/slices/driverSlice';
 
 // Types
 interface NavItemProps {
@@ -46,10 +49,13 @@ const OnlineStatusToggle: React.FC<{ isOnline: boolean; onToggle: () => void }> 
 }) => {
   // Animation for status indicator
   const [position, setPosition] = useState(isOnline ? 100 : 0);
-  
+
+
   useEffect(() => {
     setPosition(isOnline ? 100 : 0);
   }, [isOnline]);
+
+
 
   return (
     <div className="flex flex-col items-center gap-4 mb-6">
@@ -286,7 +292,14 @@ const PerformanceCard: React.FC = () => (
 const DeliveryPartnerDashboard: React.FC = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [activeNav, setActiveNav] = useState('home');
+  const [isOpen, setIsOpen] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
+  const handleLogout = () => {
+    dispatch(clearAuth()); // Clears email from Redux & localStorage
+    navigate("/partner"); // Redirects to login page
+  };
   const toggleOnline = () => {
     setIsOnline(!isOnline);
   };
@@ -301,17 +314,38 @@ const DeliveryPartnerDashboard: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <button className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-                <Bell size={20} className="text-gray-700" />
-              </button>
-              <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500"></span>
-            </div>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-blue-600">
-              <User size={18} />
-              <span className="font-medium">Profile</span>
+      {/* Notification Bell */}
+      <div className="relative">
+        <button className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+          <Bell size={20} className="text-gray-700" />
+        </button>
+        <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500"></span>
+      </div>
+
+      {/* Profile Button with Dropdown */}
+      <div className="relative">
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-blue-600"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <User size={18} />
+          <span className="font-medium">Profile</span>
+        </button>
+
+        {/* Dropdown Menu */}
+        {isOpen && (
+          <div className="absolute right-0 mt-2 w-36 bg-white shadow-md rounded-lg">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-4 py-2 text-red-600 hover:bg-gray-100 transition-colors"
+            >
+              <LogOut size={18} />
+              Logout
             </button>
           </div>
+        )}
+      </div>
+    </div>
         </header>
 
         <div className="flex gap-6">

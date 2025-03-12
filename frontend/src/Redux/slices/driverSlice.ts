@@ -2,11 +2,11 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 
 interface DriverState {
-    email: string;
+    email: string | null;
 }
 
 const initialState: DriverState = {
-    email: "",
+    email: localStorage.getItem("driverEmail") || null,
 };
 
 const driverSlice = createSlice({
@@ -15,9 +15,11 @@ const driverSlice = createSlice({
     reducers: {
         setEmailId: (state, action: PayloadAction<string>) => {
             state.email = action.payload;
+            localStorage.setItem("driverEmail", action.payload);
         },
         clearAuth: (state) => {
-            state.email = "";
+            state.email = null;
+            localStorage.removeItem("driverEmail");
         },
     },
 });

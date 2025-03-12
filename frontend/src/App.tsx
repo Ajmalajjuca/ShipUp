@@ -14,6 +14,7 @@ import PartnerReg from './components/driver/PartnerReg';
 import PartnerLog from './components/driver/PartnerLog';
 import Verification from './components/driver/Verification';
 import DeliveryPartnerDashboard from './components/driver/components/DeliveryPartnerDashboard';
+import AdminLoginPage from './components/admin/AdminLoginPage';
 
 const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -155,9 +156,16 @@ function App() {
         path="/partner/dashboard"
         element={
           <PrivatePartnerRoute>
-            <DeliveryPartnerDashboard/>
+            <Verification/>
           </PrivatePartnerRoute>
-
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          
+            <AdminLoginPage/>
+          
         }
       />
     </Routes>

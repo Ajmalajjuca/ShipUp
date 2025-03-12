@@ -24,6 +24,7 @@ interface AuthController {
   verifyOtp: (req: Request, res: Response) => Promise<void>;
   resetPassword: (req: Request, res: Response) => Promise<void>;
   protected: (req: Request, res: Response) => Promise<void>;
+  adminLogin: (req: Request, res: Response) => Promise<void>;
 }
 
 export const authController: AuthController = {
@@ -81,13 +82,15 @@ export const authController: AuthController = {
   login: async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
+      
       if (!email || !password) {
         res.status(400).json({ error: 'All fields are required.' });
         return;
       }
+      console.log('email:-',email,'password:-',password);
 
       const user = await loginUser.execute(email, password);
-      
+
       
       if (!user) {
         res.status(401).json({ error: 'Invalid email or password...' });
@@ -109,8 +112,10 @@ export const authController: AuthController = {
 
   verifyOtp: async (req: Request, res: Response) => {
     const { email, otp } = req.body;
-
+    
+    
     const { isValid, user } = await otpService.verifyOtp(email, otp);
+    console.log('isValid:>',isValid,'------------user',user);
     if (!isValid || !user) {
       res.status(400).json({ error: 'Invalid OTP or user data not found' });
       return;
@@ -161,5 +166,39 @@ export const authController: AuthController = {
     res.json({ message: 'Protected route accessed', user: req.user });
   },
  
+  adminLogin: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, password } = req.body;
+      console.log('email:-',email,'password:-',password);
+      
+
+      if (!email || !password) {
+        res.status(400).json({ error: 'All fields are required.' });
+        return;
+      }
+
+      const user = await loginUser.execute(email, password);
+      console.log('admin:-',user);
+      if (!user) {
+        res.status(401).json({ error: 'Invalid email or password.' });
+        return;
+      }
+      
+      if (user.role !== 'admin') {
+        res.status(403).json({ error: 'Access denied. Admins only.' });
+        return;
+      }
+
+      const token = authService.generateToken(user);
+      res.status(200).json({
+        message: 'Admin login successful!',
+        user,
+        token,
+      });
+    } catch (error) {
+      console.error('Admin Login Error:', error);
+      res.status(500).json({ error: 'Internal server error.' });
+    }
+  },
 
 };

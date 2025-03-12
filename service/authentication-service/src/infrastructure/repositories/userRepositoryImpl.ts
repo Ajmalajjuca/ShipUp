@@ -9,8 +9,7 @@ export class UserRepositoryImpl implements UserRepository {
       throw new Error('Password is required'); // Prevents undefined passwords
     }
 
-    const hashedPassword = await bcrypt.hash(user.password, 10);
-    const newUser = await UserModel.create({ ...user, password: hashedPassword });
+    const newUser = await UserModel.create({ ...user, });
 
     return this.mapToUser(newUser);
   }

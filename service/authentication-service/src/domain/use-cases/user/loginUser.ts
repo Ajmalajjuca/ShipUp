@@ -10,10 +10,12 @@ export class LoginUser {
 
   async execute(email: string, password: string) {
     const user = await this.userRepo.findByEmail(email);
-    
     if (!user) return null;
-    
-    const isPasswordValid = bcrypt.compare(password, user.password);
+    console.log('Stored Hash:', user.password);
+    console.log('Password Match:', await bcrypt.compare(password, user.password));
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('user:---', isPasswordValid);
     if (!isPasswordValid) return null;
 
     return user;

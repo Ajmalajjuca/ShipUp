@@ -148,7 +148,9 @@ const AdminDashboard: React.FC = () => {
   ];
 
   const requests = [
-    { sl: 1, name: '', contactInfo: '', branch: '', identityType: '', identityNumber: '', identityImage: '', status: 'Pending' },
+    { sl: 1, name: 'Dim Tim', contactInfo: 'd****@gmail.com, +8*******', branch: '', identityType: '', identityNumber: '', identityImage: '', status: 'Pending' },
+    { sl: 2, name: 'john ', contactInfo: 'd****@gmail.com, +8*******', branch: '', identityType: '', identityNumber: '', identityImage: '', status: 'Pending' },
+    { sl: 3, name: 'justin', contactInfo: 'd****@gmail.com, +8*******', branch: '', identityType: '', identityNumber: '', identityImage: '', status: 'Pending' },
     // Add more requests as needed
   ];
 

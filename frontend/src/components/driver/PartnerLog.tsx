@@ -4,7 +4,6 @@ import { useDispatch } from "react-redux";
 import { setEmailId } from "../../Redux/slices/driverSlice"; // Import Redux action
 import { useNavigate } from 'react-router-dom'
 
-
 const PartnerLog: React.FC = () => {
   // State management
   const [email, setEmail] = useState("");
@@ -37,7 +36,7 @@ const PartnerLog: React.FC = () => {
 
       try {
         // Call API to verify email and send OTP
-        const response = await axios.post("http://localhost:3001/api/drivers/send-otp", { email });
+        const response = await axios.post("http://localhost:3001/auth/login-otp", { email });
 
         if (response.data.success) {
           dispatch(setEmailId(email))
@@ -47,7 +46,6 @@ const PartnerLog: React.FC = () => {
           setErrors({ email: response.data.message || "Failed to send OTP" });
         }
       } catch (error: any) {
-
         if (error.response && error.response.status === 404) {
           setErrors({ email: "Email not found. This email is not registered as a delivery partner." });
         } else {
@@ -80,7 +78,7 @@ const PartnerLog: React.FC = () => {
 
       try {
         // Call API to verify OTP
-        const response = await axios.post("http://localhost:3001/api/drivers/verify-otp", { email, otp });
+        const response = await axios.post("http://localhost:3001/auth/verify-login-otp", { email, otp });
 
         if (response.data.success) {
           // Store the token
@@ -110,7 +108,7 @@ const PartnerLog: React.FC = () => {
     setMessage("");
 
     try {
-      const response = await axios.post("/api/drivers/resend-otp", { email });
+      const response = await axios.post("http://localhost:3001/auth/login-otp", { email });
 
       if (response.data.success) {
         setMessage("New OTP sent successfully");
@@ -162,13 +160,12 @@ const PartnerLog: React.FC = () => {
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-600">
           Don't have a partner account?
-          <a  onClick={()=> navigate('/register')} className="text-red-500 hover:underline ml-1">
+          <a onClick={() => navigate('/register')} className="text-red-500 hover:underline ml-1">
             Register here
           </a>
         </p>
       </div>
     </form>
-
   );
 
   // Render OTP step

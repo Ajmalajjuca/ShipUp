@@ -13,18 +13,20 @@ const AdminLoginPage: React.FC = () => {
     e.preventDefault();
   
     try {
-      const response = await axios.post("http://localhost:3001/api/admin/login", {
+      const response = await axios.post("http://localhost:3001/auth/login", {
         email,
         password,
       });
-      console.log('response:-',response);
       
-      if (response.status === 200) {
+      if (response.status === 200&&response.data.role.role==='admin') {
         console.log("Login successful", response.data);
         localStorage.setItem("token", response.data.token); // Store token
         navigate('/admin/dashboard')
         alert("Login successful!");
         // Redirect or navigate to the dashboard (optional)
+      }else{
+        navigate('/admin')
+        alert('Access denied: Admins only')
       }
     } catch (error: any) {        
       console.error("Login failed", error.response?.data?.error || error.message);

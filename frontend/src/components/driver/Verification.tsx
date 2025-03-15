@@ -10,6 +10,7 @@ import DeliveryPartnerDashboard from './components/DeliveryPartnerDashboard';
 const Verification = () => {
     const email = useSelector((state: RootState) => state.driver.email);
     
+    
     type VerificationData = {
         BankDetails: boolean;
         PersonalDocuments: boolean;
@@ -30,7 +31,7 @@ const Verification = () => {
 
         const getData = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/api/drivers/verify-doc?email=${email}`);
+                const response = await axios.get(`http://localhost:3003/api/drivers/verify-doc?email=${email}`);
                 const data = response.data?.data || {}; // Prevents accessing undefined properties
 
                 setVerificationData({

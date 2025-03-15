@@ -99,12 +99,13 @@ const PartnerReg = () => {
         });
 
         try {
-            const response = await axios.post('http://localhost:3001/api/drivers/register', formDataToSend, {
+            const response = await axios.post('http://localhost:3003/api/drivers', formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-
+            console.log('response::',response);
+            
 
             if (response.data.status === "success") {
 

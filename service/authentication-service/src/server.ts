@@ -4,8 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import { connectDB } from './infrastructure/database/mongoose';
 import authRoutes from './presentation/routes/authRoutes';
-import  driverRouter  from './presentation/routes/driverRoutes';
-import  adminRouter  from './presentation/routes/adminRouter';
+
 
 
 
@@ -25,8 +24,7 @@ connectDB();
 
 // Use the routes
 app.use('/auth', authRoutes);
-app.use('/api/drivers', driverRouter);
-app.use('/api/admin', adminRouter);
+
 
 
 app.listen(3001, () => console.log('Auth Service running on port 3001'));

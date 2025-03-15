@@ -55,12 +55,7 @@ const ModernProfilePage = () => {
             <p className="text-gray-600 mt-1">{userData.email}</p>
             <p className="text-gray-600 mt-1">{userData?.phone}</p>
 
-            {/* Verification Pending Pill */}
-          {!userData.isVerified && (
-            <span onClick={()=>navigate('/otp-verification')} className="mt-2 inline-block bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded-full cursor-pointer">
-              Verification Pending
-            </span>
-          )}
+            
             
             <div className="mt-6 w-full bg-gray-100 p-3 rounded-lg">
               <div className="flex justify-between items-center">

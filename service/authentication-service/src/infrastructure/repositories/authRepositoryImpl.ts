@@ -1,32 +1,45 @@
 // infrastructure/repositories/authRepositoryImpl.ts
 import { AuthRepository } from '../../domain/repositories/authRepository';
+import { Auth } from '../../domain/entities/auth';
 import { AuthModel } from '../models/authModel';
 import bcrypt from 'bcrypt';
 
 export class AuthRepositoryImpl implements AuthRepository {
-  async findByEmail(email: string): Promise<any> {
-    return await AuthModel.findOne({ email }).exec();
+  async findByEmail(email: string): Promise<Auth | null> {
+    return AuthModel.findOne({ email }).lean();
   }
 
-  async create(authData: { userId: string; email: string; role: string; password?: string }): Promise<any> {
-    const newUser = new AuthModel(authData);
-    return await newUser.save();
+  async create(auth: Omit<Auth, 'userId'> & { userId: string }): Promise<Auth> {
+    const newAuth = new AuthModel(auth);
+    return (await newAuth.save()).toObject();
+  }
+
+  async findById(userId: string): Promise<Auth | null> {
+    return AuthModel.findOne({ userId }).lean();
+  }
+
+  async update(userId: string, data: Partial<Auth>): Promise<Auth> {
+    const updatedAuth = await AuthModel.findOneAndUpdate(
+      { userId },
+      { $set: data },
+      { new: true }
+    ).lean();
+
+    if (!updatedAuth) {
+      throw new Error('Auth not found');
+    }
+
+    return updatedAuth;
+  }
+
+  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
+    await AuthModel.updateOne(
+      { userId },
+      { $set: { password: hashedPassword } }
+    );
   }
 
   async delete(userId: string): Promise<void> {
-    await AuthModel.deleteOne({ userId }).exec();
-  }
-
-  async updatePassword(userId: string, newPassword: string): Promise<void> {
-    try {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await AuthModel.updateOne(
-        { userId },
-        { $set: { password: hashedPassword } }
-      ).exec();
-    } catch (error) {
-      console.error('Error updating password:', error);
-      throw error;
-    }
+    await AuthModel.deleteOne({ userId });
   }
 }

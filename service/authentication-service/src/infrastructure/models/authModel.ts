@@ -1,11 +1,18 @@
 import mongoose from 'mongoose';
 import { Auth } from '../../domain/entities/auth';
 
-const AuthSchema = new mongoose.Schema<Auth>({
+const authSchema = new mongoose.Schema<Auth>({
   userId: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, },
-  role: { type: String, enum: ['user', 'driver', 'admin'], required: true },
-}, { timestamps: true });
+  password: { type: String, required: true },
+  role: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
 
-export const AuthModel = mongoose.model<Auth>('Auth', AuthSchema);
+authSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+export const AuthModel = mongoose.model<Auth>('Auth', authSchema);

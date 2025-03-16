@@ -7,7 +7,7 @@ export class UserRepositoryImpl implements UserRepository {
     try {
       const newUser = new UserModel(user);
       const savedUser = await newUser.save();
-      return savedUser.toObject() as User;
+      return savedUser.toObject();
     } catch (error) {
       throw new Error(`Failed to create user: ${error}`);
     }
@@ -16,7 +16,7 @@ export class UserRepositoryImpl implements UserRepository {
   async findById(userId: string): Promise<User | null> {
     try {
       const user = await UserModel.findOne({ userId }).lean();
-      return user as User | null;
+      return user;
     } catch (error) {
       throw new Error(`Failed to find user: ${error}`);
     }
@@ -25,20 +25,30 @@ export class UserRepositoryImpl implements UserRepository {
   async findByEmail(email: string): Promise<User | null> {
     try {
       const user = await UserModel.findOne({ email }).lean();
-      return user as User | null;
+      return user;
     } catch (error) {
       throw new Error(`Failed to find user by email: ${error}`);
     }
   }
 
-  async update(userId: string, data: Partial<User>): Promise<User | null> {
+  async update(userId: string, data: Partial<User>): Promise<User> {
     try {
       const updatedUser = await UserModel.findOneAndUpdate(
         { userId },
-        { ...data, updatedAt: new Date() },
+        { 
+          $set: {
+            ...data,
+            updatedAt: new Date()
+          }
+        },
         { new: true, lean: true }
       );
-      return updatedUser as User | null;
+
+      if (!updatedUser) {
+        throw new Error('User not found');
+      }
+
+      return updatedUser;
     } catch (error) {
       throw new Error(`Failed to update user: ${error}`);
     }

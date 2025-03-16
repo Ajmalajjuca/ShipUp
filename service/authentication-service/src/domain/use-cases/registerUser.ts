@@ -59,16 +59,13 @@ export class RegisterUser {
       await this.otpService['redisClient'].setEx(`${email}:pending`, 300, pendingData);
 
       await this.emailService.sendOtpEmail(email, otp);
-      console.log('done');
       return { 
         success: true, 
         message: 'OTP sent to your email for verification',
         userId 
       };
       
-    } catch (error) {
-      console.log('err');
-      
+    } catch (error) {      
       console.error('Registration error:', error);
       await this.otpService['redisClient'].del(`${email}:otp`);
       await this.otpService['redisClient'].del(`${email}:pending`);

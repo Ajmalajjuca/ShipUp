@@ -8,6 +8,7 @@ import { AuthService } from '../../application/services/authService';
 import { OtpService } from '../../application/services/otpService';
 import { EmailService } from '../../application/services/emailService';
 import multer from 'multer';
+import bcrypt from 'bcrypt';
 
 const authRepository = new AuthRepositoryImpl();
 const authService = new AuthService();
@@ -69,9 +70,10 @@ export const authController = {
       }
 
       // Store email and role directly in the database (no OTP)
-      const authData: { userId: string; email: string; role: 'user' | 'driver' | 'admin' } = {
+      const authData: { userId: string; email: string; password: string; role: 'user' | 'driver' | 'admin' } = {
         userId: partnerId || `DRV-${authService.generateUserId()}`,
         email,
+        password: '', // or generate a random password if needed
         role: 'driver',
       };
 
@@ -105,7 +107,6 @@ export const authController = {
         res.status(401).json({ success: false, error: result.error });
         return;
       }
-      console.log('result.user>>',result.authUser);
 
       res.status(200).json({
         success: true,
@@ -353,6 +354,39 @@ export const authController = {
       console.error('Token verification error:', error);
       res.status(500).json({ valid: false, message: 'Internal server error' });
       return 
+    }
+  },
+
+  async verifyPassword(req: Request, res: Response) {
+    try {
+      const { userId, password } = req.body;
+      
+      const user = await authRepository.findById(userId);
+      if (!user) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+
+      const isValid = await bcrypt.compare(password, user.password);
+      
+      res.status(200).json({ success: isValid });
+    } catch (error) {
+      console.error('Password verification error:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  },
+
+  async updatePassword(req: Request, res: Response) {
+    try {
+      const { userId, newPassword } = req.body;
+      
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await authRepository.updatePassword(userId, hashedPassword);
+      
+      res.status(200).json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Password update error:', error);
+      res.status(500).json({ success: false, message: 'Failed to update password' });
     }
   },
 

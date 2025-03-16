@@ -19,6 +19,7 @@ import { Toaster } from 'react-hot-toast';
 import { sessionManager } from './utils/sessionManager';
 import axios from 'axios';
 import { loginSuccess } from './Redux/slices/authSlice';
+import EditProfile from './components/user/Profile/ProfileComponents/EditProfile';
 
 const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -135,6 +136,11 @@ function App() {
         {/* Protected Routes */}
         <Route path="/home" element={<PrivateRoute><ShipUpApp /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/profile/edit" element={
+          <PrivateRoute>
+            <EditProfile />
+          </PrivateRoute>
+        } />
         
         {/* Partner Routes */}
         <Route path="/register" element={<PartnerReg />} />

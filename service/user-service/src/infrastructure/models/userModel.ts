@@ -20,8 +20,26 @@ const userSchema = new mongoose.Schema<User>({
     type: String, 
     required: true 
   },
+  addresses: {
+    type: [String],
+    default: []
+  },
+  onlineStatus: {
+    type: Boolean,
+    default: false
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  referralId: {
+    type: String,
+    unique: true,
+    sparse: true // Allows null/undefined values to not count towards uniqueness
+  },
   profileImage: { 
-    type: String 
+    type: String,
+    default: null
   },
   createdAt: { 
     type: Date, 
@@ -35,6 +53,14 @@ const userSchema = new mongoose.Schema<User>({
 
 userSchema.pre('save', function(next) {
   this.updatedAt = new Date();
+  next();
+});
+
+userSchema.pre('save', function(next) {
+  if (!this.referralId) {
+    // Generate a unique referral ID based on userId or other logic
+    this.referralId = `REF${this.userId.slice(-6).toUpperCase()}`;
+  }
   next();
 });
 

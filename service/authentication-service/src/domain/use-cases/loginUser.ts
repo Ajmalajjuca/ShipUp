@@ -3,33 +3,49 @@ import { AuthService } from '../../application/services/authService';
 import bcrypt from 'bcrypt';
 import axios from 'axios';
 
+interface LoginResult {
+  success: boolean;
+  error?: string;
+  authUser?: {
+    userId: string;
+    email: string;
+    role: string;
+  };
+  token?: string;
+}
+
 export class LoginUser {
   constructor(
     private authRepo: AuthRepository,
     private authService: AuthService
   ) {}
 
-  async execute(email: string, password: string): Promise<{ success: boolean; token?: string; error?: string,userinfo?:{},authUser?:{} }> {
-    const authUser = await this.authRepo.findByEmail(email);
-    
-    if (!authUser || !authUser.password || !(await bcrypt.compare(password, authUser.password))) {
-      return { success: false, error: 'Invalid credentials' };
-    }
-    
-
-    const token = this.authService.generateToken(authUser.userId, authUser.email, authUser.role);
-    let userinfo;
-      try {
-        const userServiceUrl = process.env.USER_SERVICE_URL;
-        if (!userServiceUrl) {
-          throw new Error('USER_SERVICE_URL not configured');
-        }
-
-        const response = await axios.get(`${userServiceUrl}/users/${authUser.userId}`);
-        userinfo = response.data.user; // Adjust based on your User Service response structure
-      } catch (error) {
-        console.error('Failed to fetch user data from User Service:', error);
+  async execute(email: string, password: string): Promise<LoginResult> {
+    try {
+      const user = await this.authRepo.findByEmail(email);
+      if (!user) {
+        return { success: false, error: 'Invalid credentials' };
       }
-    return { success: true,authUser,userinfo, token };
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return { success: false, error: 'Invalid credentials' };
+      }
+
+      const token = this.authService.generateToken(user.userId, user.email, user.role);
+
+      return {
+        success: true,
+        authUser: {
+          userId: user.userId,
+          email: user.email,
+          role: user.role
+        },
+        token
+      };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Login failed' };
+    }
   }
 }

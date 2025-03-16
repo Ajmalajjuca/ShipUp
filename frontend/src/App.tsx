@@ -82,7 +82,8 @@ function App() {
         if (token && user) {
           const isValid = await sessionManager.verifyToken();
           if (isValid) {
-            dispatch(loginSuccess({ user, token }));
+            const updatedSession = sessionManager.getSession();
+            dispatch(loginSuccess({ user: updatedSession.user, token }));
           } else {
             sessionManager.clearSession();
             navigate('/login');

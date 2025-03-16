@@ -25,6 +25,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isHovering, setIsHovering] = useState('');
+  const [imageError, setImageError] = useState(false);
 
   return (
     <div className="w-full md:w-1/3 bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
@@ -34,11 +35,15 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
         </h2>
         
         <div className="flex flex-col items-center">
-          {userData.profileImage ? (
+          {userData.profileImage && !imageError ? (
             <img 
-              src={userData.profileImage} 
+              src={userData.profileImage}
               alt={userData.fullName}
               className="w-24 h-24 rounded-full object-cover mb-4"
+              onError={() => {
+                console.error('Failed to load profile image:', userData.profileImage);
+                setImageError(true);
+              }}
             />
           ) : (
             <div className="w-24 h-24 rounded-full bg-gradient-to-r from-indigo-900 to-red-400 flex items-center justify-center mb-4">

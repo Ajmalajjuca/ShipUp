@@ -9,6 +9,7 @@ import { OtpService } from '../../application/services/otpService';
 import { EmailService } from '../../application/services/emailService';
 import multer from 'multer';
 import bcrypt from 'bcrypt';
+import axios from 'axios';
 
 const authRepository = new AuthRepositoryImpl();
 const authService = new AuthService();
@@ -100,26 +101,45 @@ export const authController = {
         res.status(400).json({ success: false, error: 'Email and password are required' });
         return;
       }
-      
 
       const result = await loginUser.execute(email, password);
-      if (!result.success) {
-        res.status(401).json({ success: false, error: result.error });
+      if (!result.success || !result.authUser || !result.token) {
+        res.status(401).json({ success: false, error: result.error || 'Login failed' });
         return;
       }
 
-      res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        user:result.userinfo,
-        role: result.authUser,
-        token: result.token
-      });
-      return;
+      // Get user details from user service
+      try {
+        const userResponse = await axios.get(
+          `${process.env.USER_SERVICE_URL}/users/${result.authUser.userId}`,
+          {
+            headers: { Authorization: `Bearer ${result.token}` }
+          }
+        );
+
+        const userData = {
+          ...result.authUser,
+          ...userResponse.data.user // This will include the profileImage URL
+        };
+
+        res.status(200).json({
+          success: true,
+          message: 'Login successful',
+          user: userData,
+          token: result.token
+        });
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+        res.status(200).json({
+          success: true,
+          message: 'Login successful',
+          user: result.authUser,
+          token: result.token
+        });
+      }
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ success: false, error: 'Internal server error' });
-      return;
     }
   },
 

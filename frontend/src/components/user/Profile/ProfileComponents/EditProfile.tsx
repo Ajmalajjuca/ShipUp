@@ -127,13 +127,47 @@ const EditProfile: React.FC = () => {
       <div className="w-full md:w-2/3">
         <div className="bg-white rounded-xl shadow-md p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageChange}
-              className="hidden"
-              accept="image/*"
-            />
+            {/* Profile Image Section - Add this at the top */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                {imagePreview || user?.profileImage ? (
+                  <div className="relative w-32 h-32">
+                    <img
+                      src={imagePreview || user?.profileImage}
+                      alt="Profile"
+                      className="w-32 h-32 rounded-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center">
+                    <Upload size={32} className="text-gray-400" />
+                  </div>
+                )}
+              </div>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                className="hidden"
+                accept="image/*"
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 text-sm text-indigo-900 border border-indigo-900 rounded-lg hover:bg-indigo-50 transition-colors"
+              >
+                Change Profile Picture
+              </button>
+            </div>
 
             {/* Form Fields */}
             <div className="space-y-4">

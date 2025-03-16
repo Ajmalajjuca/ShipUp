@@ -57,19 +57,35 @@ export const sessionManager = {
     if (!token || !user) return false;
 
     try {
-      const response = await fetch('http://localhost:3001/auth/verify-token', {
+      // First verify with auth service
+      const authResponse = await fetch('http://localhost:3001/auth/verify-token', {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      if (!response.ok) {
+      if (!authResponse.ok) {
         return false;
       }
 
-      const data = await response.json();
-      return data.valid;
+      // Then get latest user data from user service
+      const userResponse = await fetch(`http://localhost:3002/api/users/${user.userId}`, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        if (userData.success) {
+          // Update session with latest user data
+          this.setSession({ ...user, ...userData.user }, token);
+        }
+      }
+
+      return true;
     } catch (error) {
       console.error('Token verification failed:', error);
       return false;

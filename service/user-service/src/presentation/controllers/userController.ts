@@ -17,6 +17,8 @@ const getUser = new GetUser(userRepository);
 const updateUser = new UpdateUser(userRepository);
 const deleteUser = new DeleteUser(userRepository);
 
+const API_URL = process.env.API_URL || 'http://localhost:3002';
+
 export const userController = {
   async create(req: Request, res: Response) {
     try {
@@ -49,18 +51,25 @@ export const userController = {
   async get(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      if (!userId) {
-        res.status(400).json({ success: false, error: 'User ID is required' });
-        return
+      const user = await userRepository.findById(userId);
+      
+      if (!user) {
+        res.status(404).json({ success: false, error: 'User not found' });
+        return;
       }
 
-      const result = await getUser.execute(userId);
-      res.status(result.success ? 200 : 404).json(result);
-      return
+      // Add full URL for profile image
+      const userData = {
+        ...user,
+        profileImage: user.profileImage 
+          ? `${API_URL}/uploads/${user.profileImage}`
+          : null
+      };
+
+      res.status(200).json({ success: true, user: userData });
     } catch (error) {
       console.error('Get user error:', error);
       res.status(500).json({ success: false, error: 'Internal server error' });
-      return
     }
   },
 
@@ -109,14 +118,9 @@ export const userController = {
       const { fullName, phone, currentPassword, newPassword } = req.body;
       const profileImage = req.file;
 
-      
-      
-      
-
       // Get user from repository
       const user = await userRepository.findById(userId);
       if (!user) {
-        // Delete uploaded file if user not found
         if (profileImage) {
           fs.unlinkSync(profileImage.path);
         }
@@ -124,55 +128,24 @@ export const userController = {
         return;
       }
 
-      // If changing password, verify with auth service
-      if (currentPassword && newPassword) {
-        const isValidPassword = await authService.verifyPassword(userId, currentPassword);        
-        
-        if (!isValidPassword) {
-          // Delete uploaded file if password verification fails
-          if (profileImage) {
-            fs.unlinkSync(profileImage.path);
-          }
-          res.status(401).json({ success: false, message: 'Current password is incorrect' });
-          return;
-        }
-
-        // Send password update request to auth service
-        try {          
-          await axios.put(`${process.env.AUTH_SERVICE_URL}auth/update-password`, {
-            userId,
-            newPassword
-          }, {
-            headers: {
-              Authorization: req.headers.authorization
-            }
-          });
-          
-        } catch (error) {
-          // Delete uploaded file if password update fails
-          if (profileImage) {
-            fs.unlinkSync(profileImage.path);
-          }
-          res.status(500).json({ success: false, message: 'Failed to update password' });
-          return;
-        }
-      }
-
       // Delete old profile image if exists and new one is uploaded
       if (profileImage && user.profileImage) {
+        const oldImagePath = path.join(__dirname, '../../../uploads', user.profileImage);
         try {
-          fs.unlinkSync(user.profileImage);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
         } catch (error) {
           console.error('Failed to delete old profile image:', error);
         }
       }
 
-      // Prepare update data (without password)
+      // Prepare update data
       const updateData: any = {
         ...(fullName && { fullName }),
         ...(phone && { phone }),
         ...(profileImage && { 
-          profileImage: `profile-images/${profileImage.filename}` // Store relative path
+          profileImage: `profile-images/${profileImage.filename}`
         })
       };
 
@@ -181,22 +154,18 @@ export const userController = {
 
       // Create full URL for profile image
       const profileImageUrl = updatedUser.profileImage 
-        ? `${process.env.API_URL || 'http://localhost:3002'}/uploads/profile-images/${path.basename(updatedUser.profileImage)}`
+        ? `${API_URL}/uploads/${updatedUser.profileImage}`
         : null;
 
       res.status(200).json({
         success: true,
         message: 'Profile updated successfully',
         user: {
-          userId: updatedUser.userId,
-          email: updatedUser.email,
-          fullName: updatedUser.fullName,
-          phone: updatedUser.phone,
+          ...updatedUser,
           profileImage: profileImageUrl
         }
       });
     } catch (error) {
-      // Delete uploaded file if update fails
       if (req.file) {
         fs.unlinkSync(req.file.path);
       }

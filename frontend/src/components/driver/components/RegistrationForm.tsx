@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DriverRegistrationData } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface RegistrationFormProps {
   initialData: Partial<DriverRegistrationData>;
@@ -40,7 +41,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
       onSubmit({ ...formData, profilePicture: profileImage });
     }
   };
-
+const navigate = useNavigate();
   return (
     <div className="w-full max-w-md mx-auto p-3">
       <div className="mb-3">
@@ -181,6 +182,14 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
           NEXT
           <span className="ml-2">→</span>
         </button>
+        <div className="mt-4 text-center">
+        <p className="text-sm text-gray-600">
+          Already have a partner account?
+          <a onClick={() => navigate('/partner')} className="text-red-500 hover:underline ml-1">
+            Login here
+          </a>
+        </p>
+      </div>
       </form>
     </div>
   );

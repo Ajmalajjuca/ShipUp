@@ -57,19 +57,19 @@ export const authController = {
   async registerDriver(req: Request, res: Response) {
     try {
       const { email, role, partnerId } = req.body;
-
+      
       if (!email || !role || role !== 'driver') {
         res.status(400).json({ success: false, error: 'Email and role=driver are required' });
         return;
       }
-
+      
       // Check if email already exists
       const existingUser = await authRepository.findByEmail(email);
       if (existingUser) {
         res.status(400).json({ success: false, error: 'Email already exists' });
         return;
       }
-
+      
       // Store email and role directly in the database (no OTP)
       const authData: { userId: string; email: string; password: string; role: 'user' | 'driver' | 'admin' } = {
         userId: partnerId || `DRV-${authService.generateUserId()}`,
@@ -77,8 +77,8 @@ export const authController = {
         password: '', // or generate a random password if needed
         role: 'driver',
       };
-
-      await authRepository.create(authData);
+      
+      await authRepository.create(authData);      
 
       res.status(201).json({
         success: true,
@@ -188,8 +188,9 @@ export const authController = {
         return;
       }
 
-      const isValid = await otpService.verifyOtp(email, otp);
-      if (!isValid) {
+      const result = await otpService.verifyOtp(email, otp);
+      
+      if (!result.isValid) {
         res.status(401).json({ success: false, error: 'Invalid or expired OTP' });
         return;
       }

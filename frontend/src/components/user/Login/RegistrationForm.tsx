@@ -1,7 +1,7 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../../../Redux/slices/authSlice';
 import FormContainer from '../../common/FormContainer';
@@ -90,7 +90,11 @@ const RegistrationForm: React.FC = () => {
 
   return (
     <FormContainer
-      title={initialStage === 'Sign up' ? 'Create an Account' : 'Sign In'}
+      title={initialStage}
+      subtitle={initialStage === 'Sign in' ? "Welcome back! Please enter your details." : "Create your account"}
+      toggleText={initialStage === 'Sign in' ? "Don't have an account?" : "Already have an account?"}
+      toggleAction={() => setInitialStage(initialStage === 'Sign in' ? 'Sign up' : 'Sign in')}
+      toggleButtonText={initialStage === 'Sign in' ? 'Sign up' : 'Sign in'}
       onSubmit={handleSubmit}
       footer={footer}
       showGoogleAuth={true}
@@ -165,18 +169,23 @@ const RegistrationForm: React.FC = () => {
         {loading ? 'Loading...' : initialStage}
       </button>
 
-      <div className="flex justify-end items-center w-full">
-      {initialStage === 'Sign in' && (
-        <button
-          type="button"
-          onClick={() => navigate('/reset-password')}
-          className="text-blue-600 hover:underline text-sm font-medium"
+      <div className="flex justify-between items-center w-full mt-4">
+        {initialStage === 'Sign in' && (
+          <button
+            type="button"
+            onClick={() => navigate('/reset-password')}
+            className="text-blue-600 hover:underline text-sm font-medium"
+          >
+            Forgot Password?
+          </button>
+        )}
+        <Link
+          to="/partner"
+          className="text-indigo-900 hover:text-indigo-700 text-sm font-medium ml-auto"
         >
-          Forgot Password?
-        </button>
-      )}
+          Back to Partner Login
+        </Link>
       </div>
-
     </FormContainer>
   );
 };

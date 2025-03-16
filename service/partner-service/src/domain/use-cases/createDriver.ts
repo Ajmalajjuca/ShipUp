@@ -55,7 +55,7 @@ export class CreateDriver {
       const createdDriver = await this.partnerRepo.create(driver);
       return { success: true, driver: createdDriver };
     } catch (error) {
-      console.error('Create driver error:', error);
+      console.error('Create driver errorrr:', error);
       return { success: false, error: 'Failed to create driver' };
     }
   }

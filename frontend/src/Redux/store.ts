@@ -1,11 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import driverSlice from './slices/driverSlice';
+import driverReducer from './slices/driverSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    driver:driverSlice
+    driver: driverReducer,
   },
 });
 

@@ -6,10 +6,13 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../Redux/store";
 import { useNavigate } from 'react-router-dom';
 import DeliveryPartnerDashboard from './components/DeliveryPartnerDashboard';
+import { LogOut } from 'lucide-react';
+import { sessionManager } from '../../utils/sessionManager';
+import { toast } from 'react-hot-toast';
 
 const Verification = () => {
-    const email = useSelector((state: RootState) => state.driver.email);
-    
+    const emailId = useSelector((state: RootState) => state.driver.emailId);
+    const navigate = useNavigate();
     
     type VerificationData = {
         BankDetails: boolean;
@@ -24,28 +27,42 @@ const Verification = () => {
         VehicleDetails: false
     });
 
-    const navigate = useNavigate();
+    const handleLogout = () => {
+        try {
+            sessionManager.clearDriverSession();
+            toast.success('Logged out successfully');
+            navigate('/partner');
+        } catch (error) {
+            console.error('Logout error:', error);
+            toast.error('Failed to logout');
+        }
+    };
 
+    const getData = async () => {
+        if (!emailId) {
+            console.log('No email found, redirecting to login');
+            navigate('/partner');
+            return;
+        }
+
+        try {
+            const response = await axios.get(`http://localhost:3003/api/drivers/verify-doc?email=${emailId}`);
+            const data = response.data?.data || {};
+            
+            setVerificationData({
+                BankDetails: data?.BankDetails || false,
+                PersonalDocuments: data?.PersonalDocuments || false,
+                VehicleDetails: data?.VehicleDetails || false
+            });
+        } catch (error) {
+            console.error('Error fetching verification data:', error);
+            toast.error('Failed to fetch verification status');
+        }
+    };
+    
     useEffect(() => {
-        if (!email) return;
-
-        const getData = async () => {
-            try {
-                const response = await axios.get(`http://localhost:3003/api/drivers/verify-doc?email=${email}`);
-                const data = response.data?.data || {}; // Prevents accessing undefined properties
-
-                setVerificationData({
-                    BankDetails: data?.BankDetails || false,
-                    PersonalDocuments: data?.PersonalDocuments || false,
-                    VehicleDetails: data?.VehicleDetails || false
-                });
-            } catch (error) {
-                console.error('Error fetching verification data:', error);
-            }
-        };
-
         getData();
-    }, [email]);
+    }, [emailId, navigate]);
 
     const isVerified = useMemo(() => (
         verificationData.BankDetails && verificationData.PersonalDocuments && verificationData.VehicleDetails
@@ -80,15 +97,25 @@ const Verification = () => {
                         </div>
 
                         <div className="mt-6 text-center">
-                            <a href="#" className="text-red-500 text-sm">Need Help? Contact Us</a>
+                            <button 
+                                className="text-red-500 text-sm hover:text-red-600"
+                                onClick={() => {
+                                    window.open('mailto:support@shipup.com', '_blank');
+                                    toast('Support email: support@shipup.com');
+                                }}
+                            >
+                                Need Help? Contact Support
+                            </button>
                         </div>
 
                         <div className="mt-4 flex justify-center">
                             <button
-                                onClick={() => navigate('/partner')}
-                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow-sm hover:bg-gray-300 transition-all"
+                                onClick={handleLogout}
+                                className="flex items-center px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all"
+                                title="Logout"
                             >
-                                Go Back
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Logout
                             </button>
                         </div>
                     </div>

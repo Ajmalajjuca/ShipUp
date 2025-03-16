@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface DocumentLayoutProps {
   title: string;
@@ -13,14 +14,15 @@ const DocumentLayout: React.FC<DocumentLayoutProps> = ({
   children,
   onBack
 }) => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-100 to-red-300 flex items-center justify-center p-4">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 rounded-xl overflow-hidden shadow-2xl bg-white">
         {/* Illustration Side */}
         <div className="relative bg-gradient-to-br from-red-200 to-red-400 p-6 flex items-center justify-center">
           <div className="relative z-10">
-            <div className="mb-6">
-              <h1 className="text-3xl">
+            <div onClick={()=>navigate('/')}  className="mb-6">
+              <h1 className="text-3xl cursor-pointer">
                 Ship<span className="text-red-400 font-bold">Up</span>
               </h1>
             </div>
@@ -73,6 +75,7 @@ const DocumentLayout: React.FC<DocumentLayoutProps> = ({
                 <span className="mr-2">←</span>
                 Back
               </button>
+              
             )}
             <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
             {subtitle && (

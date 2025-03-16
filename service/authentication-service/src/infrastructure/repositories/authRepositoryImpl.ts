@@ -10,6 +10,7 @@ export class AuthRepositoryImpl implements AuthRepository {
   }
 
   async create(auth: Omit<Auth, 'userId'> & { userId: string }): Promise<Auth> {
+    
     const newAuth = new AuthModel(auth);
     return (await newAuth.save()).toObject();
   }

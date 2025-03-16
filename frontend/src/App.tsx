@@ -20,6 +20,8 @@ import { sessionManager } from './utils/sessionManager';
 import axios from 'axios';
 import { loginSuccess } from './Redux/slices/authSlice';
 import EditProfile from './components/user/Profile/ProfileComponents/EditProfile';
+import ProtectedRoute from './components/driver/ProtectedRoute';
+
 
 const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -146,9 +148,14 @@ function App() {
         {/* Partner Routes */}
         <Route path="/register" element={<PartnerReg />} />
         <Route path="/partner" element={<PartnerLog />} />
-        <Route path="/partner/dashboard" element={
-          <PrivatePartnerRoute><Verification /></PrivatePartnerRoute>
-        } />
+        <Route 
+          path="/partner/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Verification />
+            </ProtectedRoute>
+          } 
+        />
         
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLoginPage />} />

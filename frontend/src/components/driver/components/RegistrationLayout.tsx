@@ -1,8 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import { RegistrationForm } from "./RegistrationForm";
 
 const RegistrationLayout: React.FC<{
   onSubmit: (formData: any) => void;
 }> = ({ onSubmit }) => {
+  const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-100 to-red-300 flex items-center justify-center p-4 overflow-hidden">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 rounded-xl overflow-hidden shadow-2xl bg-white lg:max-h-[90vh]">
@@ -10,7 +12,7 @@ const RegistrationLayout: React.FC<{
         <div className="relative bg-gradient-to-br from-red-200 to-red-400 p-6 flex items-center justify-center overflow-hidden">
           <div className="relative z-10">
             <div className="mb-6">
-              <h1 className="text-3xl">
+              <h1 onClick={()=>navigate('/')}  className="text-3xl cursor-pointer">
                 Ship<span className="text-red-400 font-bold">Up</span>
               </h1>
             </div>

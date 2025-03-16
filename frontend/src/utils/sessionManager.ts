@@ -1,5 +1,6 @@
 import { store } from '../Redux/store';
 import { loginSuccess, logout } from '../Redux/slices/authSlice';
+import { clearDriverData, setDriverData } from '../Redux/slices/driverSlice';
 
 export const sessionManager = {
   setSession(user: any, token: string) {
@@ -90,6 +91,45 @@ export const sessionManager = {
       console.error('Token verification failed:', error);
       return false;
     }
+  },
+
+  setDriverSession(token: string, driverData: any) {
+    localStorage.setItem('driverToken', token);
+    localStorage.setItem('driverData', JSON.stringify(driverData));
+    store.dispatch(setDriverData({ driverData, token }));
+  },
+
+  getDriverSession() {
+    const token = localStorage.getItem('driverToken');
+    const driverData = JSON.parse(localStorage.getItem('driverData') || 'null');
+    return { token, driverData };
+  },
+
+  clearDriverSession() {
+    try {
+      // Clear all auth-related storage
+      localStorage.removeItem('driverToken');
+      localStorage.removeItem('driverData');
+      sessionStorage.clear();
+      
+      // Clear Redux state
+      store.dispatch(clearDriverData());
+      
+      // Clear any other auth-related data
+      document.cookie.split(";").forEach(cookie => {
+        document.cookie = cookie
+          .replace(/^ +/, "")
+          .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+      });
+    } catch (error) {
+      console.error('Error during session cleanup:', error);
+      throw error;
+    }
+  },
+
+  isDriverAuthenticated() {
+    const token = localStorage.getItem('driverToken');
+    return !!token;
   }
 };
 

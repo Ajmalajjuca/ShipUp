@@ -24,23 +24,24 @@ export const partnerController = {
         ifscCode,
         upiId,
       } = req.body;
-
+      
+      
       const files = req.files as Express.Multer.File[] || [];
       const fileMap = files.reduce((acc, file) => {
         acc[file.fieldname] = file.path;
         return acc;
       }, {} as Record<string, string>);
-
+      
       const requiredFields = [
         'fullName', 'mobileNumber', 'dateOfBirth', 'address', 'email',
         'vehicleType', 'registrationNumber', 'accountHolderName', 'accountNumber',
         'ifscCode', 'upiId', 'aadhar', 'pan', 'license', 'insuranceDoc', 'pollutionDoc', 'profilePicture'
       ];
-
+      
       const missingFields = requiredFields.filter(field => 
         !req.body[field] && !fileMap[field]
       );
-
+      
       if (missingFields.length > 0) {
         res.status(400).json({
           success: false,
@@ -48,9 +49,9 @@ export const partnerController = {
         });
         return;
       }
-
+      
       const partnerId = `DRV-${uuidv4()}`;
-
+      
       const authResponse = await axios.post('http://localhost:3001/auth/register-driver', {
         email,
         role: 'driver',
@@ -58,7 +59,7 @@ export const partnerController = {
       }, {
         headers: { 'Content-Type': 'application/json' } // No files, so JSON is fine
       });
-
+      
       if (!authResponse.data.success) {
         res.status(400).json({
           success: false,
@@ -107,7 +108,7 @@ export const partnerController = {
       });
       return;
     } catch (error) {
-      console.error('Create driver error:', error);
+      console.error('Create driver errorr:');
       res.status(500).json({ success: false, error: 'Internal server error' });
       return;
     }

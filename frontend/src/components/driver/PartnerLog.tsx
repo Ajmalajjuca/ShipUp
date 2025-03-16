@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { setEmailId } from "../../Redux/slices/driverSlice"; // Import Redux action
 import { useNavigate } from 'react-router-dom'
+import EnhancedAlert from '../common/EnhancedAlert';
+import { toast } from 'react-hot-toast';
+import { sessionManager } from '../../utils/sessionManager';
 
 const PartnerLog: React.FC = () => {
   // State management
@@ -15,6 +18,26 @@ const PartnerLog: React.FC = () => {
   const navigate = useNavigate()
 
   const dispatch = useDispatch()
+
+  // Add loading state for resend OTP
+  const [resendingOtp, setResendingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Add cooldown timer for OTP resend
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  // Add useEffect to check session
+  useEffect(() => {
+    if (sessionManager.isDriverAuthenticated()) {
+      navigate('/partner/dashboard');
+    }
+  }, [navigate]);
+
   // Handle email submission
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +60,8 @@ const PartnerLog: React.FC = () => {
       try {
         // Call API to verify email and send OTP
         const response = await axios.post("http://localhost:3001/auth/login-otp", { email });
-
+        console.log('respo>>',response);
+        
         if (response.data.success) {
           dispatch(setEmailId(email))
           setStep("otp");
@@ -46,10 +70,12 @@ const PartnerLog: React.FC = () => {
           setErrors({ email: response.data.message || "Failed to send OTP" });
         }
       } catch (error: any) {
+        console.log('err',error);
+        
         if (error.response && error.response.status === 404) {
           setErrors({ email: "Email not found. This email is not registered as a delivery partner." });
         } else {
-          setErrors({ email: error.response?.data?.message || "Something went wrong. Please try again." });
+          setErrors({ email: error.response?.data?.error || "Something went wrong. Please try again." });
         }
       } finally {
         setIsSubmitting(false);
@@ -81,44 +107,43 @@ const PartnerLog: React.FC = () => {
         const response = await axios.post("http://localhost:3001/auth/verify-login-otp", { email, otp });
 
         if (response.data.success) {
-          // Store the token
-          localStorage.setItem("token", response.data.token);
-
+          dispatch(setEmailId(email));
+          sessionManager.setDriverSession(response.data.token, response.data.user);
           setStep("success");
           setMessage("Login successful!");
 
-          // Redirect to home page after successful verification
           setTimeout(() => {
-            navigate("/partner/dashboard")
+            navigate("/partner/dashboard");
           }, 1500);
         } else {
           setErrors({ otp: response.data.message || "Invalid OTP" });
         }
       } catch (error: any) {
-        setErrors({ otp: error.response?.data?.message || "Failed to verify OTP" });
+        setErrors({ otp: error.response?.data?.error || "Failed to verify OTP" });
       } finally {
         setIsSubmitting(false);
       }
     }
   };
 
-  // Request new OTP
+  // Update handleResendOtp with cooldown
   const handleResendOtp = async () => {
-    setIsSubmitting(true);
+    if (resendCooldown > 0) return;
+    
+    setResendingOtp(true);
     setMessage("");
 
     try {
       const response = await axios.post("http://localhost:3001/auth/login-otp", { email });
 
       if (response.data.success) {
-        setMessage("New OTP sent successfully");
-      } else {
-        setMessage("Failed to resend OTP");
+        toast.success("New OTP sent successfully");
+        setResendCooldown(30); // Start 30-second cooldown
       }
     } catch (error: any) {
-      setMessage(error.response?.data?.message || "Something went wrong");
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
     } finally {
-      setIsSubmitting(false);
+      setResendingOtp(false);
     }
   };
 
@@ -143,7 +168,11 @@ const PartnerLog: React.FC = () => {
           disabled={isSubmitting}
         />
         {errors.email && (
-          <p className="text-xs text-red-500 mt-1">{errors.email}</p>
+          <EnhancedAlert 
+            type="error" 
+            message={errors.email}
+            onClose={() => setErrors(prev => ({ ...prev, email: '' }))}
+          />
         )}
       </div>
 
@@ -177,9 +206,11 @@ const PartnerLog: React.FC = () => {
       </div>
 
       {message && (
-        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
-          {message}
-        </div>
+        <EnhancedAlert 
+          type="success" 
+          message={message}
+          onClose={() => setMessage('')}
+        />
       )}
 
       <div className="mb-6">
@@ -196,7 +227,11 @@ const PartnerLog: React.FC = () => {
           maxLength={6}
         />
         {errors.otp && (
-          <p className="text-xs text-red-500 mt-1">{errors.otp}</p>
+          <EnhancedAlert 
+            type="error" 
+            message={errors.otp}
+            onClose={() => setErrors(prev => ({ ...prev, otp: '' }))}
+          />
         )}
       </div>
 
@@ -221,11 +256,20 @@ const PartnerLog: React.FC = () => {
 
         <button
           type="button"
-          className="text-sm text-blue-500 hover:text-blue-700"
+          className={`text-sm ${
+            resendCooldown > 0 
+              ? 'text-gray-400 cursor-not-allowed' 
+              : 'text-blue-500 hover:text-blue-700'
+          }`}
           onClick={handleResendOtp}
-          disabled={isSubmitting}
+          disabled={resendCooldown > 0 || isSubmitting || resendingOtp}
         >
-          Resend OTP
+          {resendCooldown > 0 
+            ? `Resend OTP in ${resendCooldown}s` 
+            : resendingOtp 
+              ? 'Sending...' 
+              : 'Resend OTP'
+          }
         </button>
       </div>
     </form>
@@ -256,7 +300,7 @@ const PartnerLog: React.FC = () => {
         <div className="relative bg-gradient-to-br from-red-200 to-red-400 p-6 flex items-center justify-center overflow-hidden">
           <div className="relative z-10">
             <div className="mb-6">
-              <h1 className="text-3xl">
+              <h1 onClick={()=>navigate('/')} className="text-3xl cursor-pointer">
                 Ship<span className="text-red-600 font-bold">Up</span>
               </h1>
             </div>

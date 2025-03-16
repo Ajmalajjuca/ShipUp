@@ -9,6 +9,9 @@ import DocumentLayout from './components/DocumentLayout';
 import { VehicleDetailsForm } from './components/VehicleDetailsForm';
 import { BankDetailsForm } from './components/BankDetailsForm';
 import axios, { AxiosError } from 'axios';
+import { useNavigate } from 'react-router-dom';
+import EnhancedAlert from '../common/EnhancedAlert';
+import { toast } from 'react-hot-toast';
 
 const PartnerReg = () => {
     const [currentStep, setCurrentStep] = useState<string>('registration');
@@ -20,9 +23,14 @@ const PartnerReg = () => {
 
 
     const handleFormSubmit = (data: Partial<DriverRegistrationData>) => {
-        if (!data.fullName || !data.mobileNumber || !data.dateOfBirth || !data.email || !data.address) {
-            return; // Form validation will be handled in RegistrationForm
+        const requiredFields = ['fullName', 'mobileNumber', 'dateOfBirth', 'email', 'address'];
+        const missingFields = requiredFields.filter(field => !data[field as keyof DriverRegistrationData]);
+        
+        if (missingFields.length > 0) {
+            toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+            return;
         }
+        
         setFormData(prev => ({ ...prev, ...data }));
         setCompletedDocuments(prev => [...prev, 'personal']);
         setCurrentStep('documents');
@@ -137,6 +145,7 @@ const PartnerReg = () => {
     };
 
     const renderStep = () => {
+        const navigate = useNavigate()
         switch (currentStep) {
             case 'registration':
                 return <RegistrationLayout onSubmit={handleFormSubmit} />;
@@ -227,51 +236,51 @@ const PartnerReg = () => {
                     <DocumentLayout title="Verification Status">
                         <div className="p-4">
                             {submitError ? (
-                                <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-6">
-                                    <h3 className="font-semibold mb-2">Submission Error</h3>
-                                    <p className="text-sm">{submitError}</p>
-                                    <button
-                                        onClick={() => submitToBackend(formData)}
-                                        className="mt-3 text-sm text-red-600 hover:text-red-800"
-                                    >
-                                        Try Again
-                                    </button>
-                                </div>
+                                <EnhancedAlert
+                                    type="error"
+                                    message={submitError}
+                                    onClose={() => setSubmitError(null)}
+                                    className="mb-6"
+                                />
                             ) : (
-                                <div className="bg-yellow-50 text-gray-800 p-4 rounded-lg mb-6">
-                                    <h3 className="font-semibold mb-2">Your application is under review</h3>
-                                    <p className="text-sm">Our team will verify your documents within 48hrs</p>
-                                </div>
+                                <EnhancedAlert
+                                    type="info"
+                                    message="Your application is under review. Our team will verify your documents within 48hrs."
+                                    className="mb-6"
+                                />
                             )}
 
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                                    <span>{'Personal information'}</span>
-                                    <span className="text-sm text-green-600">
-                                        {'Approved'}
-                                    </span>
-                                </div>
-                                {DOCUMENT_STEPS.map(doc => (
-
-                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                                        <span>{doc.title}</span>
-                                        <span className="text-sm text-yellow-600">
-                                            {isSubmitting ? 'Submitting...' : 'Verification Pending'}
+                                {['Personal Information', ...DOCUMENT_STEPS.map(doc => doc.title)].map((step, index) => (
+                                    <div key={step} className="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+                                        <div className="flex items-center space-x-3">
+                                            <span className="font-medium text-gray-700">{step}</span>
+                                        </div>
+                                        <span className={`text-sm font-medium ${
+                                            index === 0 ? 'text-green-600' : 'text-yellow-600'
+                                        }`}>
+                                            {index === 0 ? 'Approved' : isSubmitting ? 'Submitting...' : 'Verification Pending'}
                                         </span>
                                     </div>
-
                                 ))}
                             </div>
 
-                            <div className="mt-6 text-center">
-                                <a href="#" className="text-red-500 text-sm">Need Help? Contact Us</a>
-                            </div>
-                            <div className="mt-4 text-center">
+                            <div className="mt-8 flex flex-col items-center space-y-4">
                                 <button
-
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                    onClick={() => navigate('/partner')}
+                                    className="w-full max-w-md px-6 py-3 bg-indigo-900 text-white rounded-lg hover:bg-indigo-800 transition-all font-medium"
                                 >
                                     Go to Login
+                                </button>
+                                
+                                <button 
+                                    className="text-indigo-900 hover:text-indigo-700 text-sm font-medium"
+                                    onClick={() => {
+                                        window.open('mailto:support@shipup.com', '_blank');
+                                        toast('Support email: support@shipup.com');
+                                    }}
+                                >
+                                    Need Help? Contact Support
                                 </button>
                             </div>
                         </div>

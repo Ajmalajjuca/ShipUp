@@ -1,28 +1,41 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-
 interface DriverState {
-    email: string | null;
+    emailId: string | null;
+    driverData: any | null;
+    token: string | null;
+    isAuthenticated: boolean;
 }
 
 const initialState: DriverState = {
-    email: localStorage.getItem("driverEmail") || null,
+    emailId: localStorage.getItem("driverEmail") || null,
+    driverData: null,
+    token: null,
+    isAuthenticated: false
 };
 
 const driverSlice = createSlice({
-    name: "auth",
+    name: "driver",
     initialState,
     reducers: {
         setEmailId: (state, action: PayloadAction<string>) => {
-            state.email = action.payload;
+            state.emailId = action.payload;
             localStorage.setItem("driverEmail", action.payload);
         },
-        clearAuth: (state) => {
-            state.email = null;
-            localStorage.removeItem("driverEmail");
+        setDriverData: (state, action: PayloadAction<{ driverData: any; token: string }>) => {
+            state.driverData = action.payload.driverData;
+            state.token = action.payload.token;
+            state.isAuthenticated = true;
         },
-    },
+        clearDriverData: (state) => {
+            state.emailId = null;
+            state.driverData = null;
+            state.token = null;
+            state.isAuthenticated = false;
+            localStorage.removeItem("driverEmail");
+        }
+    }
 });
 
-export const { setEmailId, clearAuth } = driverSlice.actions;
+export const { setEmailId, setDriverData, clearDriverData } = driverSlice.actions;
 export default driverSlice.reducer;

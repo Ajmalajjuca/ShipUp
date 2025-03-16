@@ -25,6 +25,7 @@ import {
 import UserList from './components/users/UserList';
 import PartnerList from './components/partners/PartnerList';
 import PartnerRequest from './components/partners/PartnerRequest';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -133,7 +134,7 @@ const AdminDashboard: React.FC = () => {
   const [activeSubItem, setActiveSubItem] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
-
+const navigate = useNavigate()
   
 
   const users = [
@@ -209,7 +210,7 @@ const AdminDashboard: React.FC = () => {
               </div>
             )}
             {sidebarOpen && (
-              <h1 className="ml-3 text-xl font-semibold">
+              <h1 onClick={() => navigate('/')} className="ml-3 text-xl font-semibold">
                 Ship<span className="text-red-500 font-bold">Up</span>
               </h1>
             )}

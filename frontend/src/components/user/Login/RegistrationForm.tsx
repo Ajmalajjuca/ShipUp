@@ -6,6 +6,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../../../Redux/slices/authSlice';
 import FormContainer from '../../common/FormContainer';
 import { RootState } from '../../../Redux/store';
+import { toast } from 'react-hot-toast';
+import { sessionManager } from '../../../utils/sessionManager';
 
 interface FormData {
   fullName: string;
@@ -41,40 +43,32 @@ const RegistrationForm: React.FC = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
-      alert('Please fill all required fields');
+      toast.error('Please fill all required fields');
       return;
     }
 
     setLoading(true);
     const requestData = { ...formData, role: 'user' };
-    const endpoint = initialStage === 'Sign up' 
-      ? 'http://localhost:3001/auth/register' 
+    const endpoint = initialStage === 'Sign up'
+      ? 'http://localhost:3001/auth/register'
       : 'http://localhost:3001/auth/login';
 
     try {
       dispatch(loginStart());
-      const response = await axios.post(endpoint, requestData, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      console.log('response::',response);
-      
+      const response = await axios.post(endpoint, requestData);
 
-      const { user, token, } = response.data;
-      
-      
+      const { user, token } = response.data;
+
       if (initialStage === 'Sign up') {
-        localStorage.setItem('token', token);
-        localStorage.setItem('pendingUser', JSON.stringify(user));
+        sessionManager.setTempSession(user, token);
         navigate('/otp-verification', { state: { email: formData.email } });
       } else {
-        dispatch(loginSuccess({ user, token }));
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        navigate('/home');
+        sessionManager.setSession(user, token);
+        navigate('/');
       }
     } catch (error: any) {
       dispatch(loginFailure(error.response?.data?.error || 'Authentication failed'));
-      alert(error.response?.data?.error || 'Something went wrong!');
+      toast.error(error.response?.data?.error || 'Something went wrong!');
     } finally {
       setLoading(false);
     }
@@ -162,6 +156,7 @@ const RegistrationForm: React.FC = () => {
           </button>
         </div>
       </div>
+
       <button
         type="submit"
         disabled={loading}
@@ -169,6 +164,19 @@ const RegistrationForm: React.FC = () => {
       >
         {loading ? 'Loading...' : initialStage}
       </button>
+
+      <div className="flex justify-end items-center w-full">
+      {initialStage === 'Sign in' && (
+        <button
+          type="button"
+          onClick={() => navigate('/reset-password')}
+          className="text-blue-600 hover:underline text-sm font-medium"
+        >
+          Forgot Password?
+        </button>
+      )}
+      </div>
+
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
     </FormContainer>
   );

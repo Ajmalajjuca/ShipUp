@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface FormContainerProps {
   title: string;
@@ -17,6 +18,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
   showGoogleAuth = false,
   onGoogleAuthClick,
 }) => {
+  const navigate = useNavigate()
   return (
     <div className="flex h-screen bg-red-400 relative overflow-hidden">
       {/* Background Shapes */}
@@ -27,7 +29,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
       <div className="hidden md:block md:w-1/2 relative">
         <div className="absolute top-8 left-8 z-10">
           <div className="flex items-center">
-            <img src="/Logo.png" alt="Logo" className="h-8 w-auto mr-2" />
+            <img onClick={() => navigate('/')} src="/Logo.png" alt="Logo" className="h-8 w-auto mr-2 cursor-pointer" />
           </div>
         </div>
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-96 h-96">

@@ -5,7 +5,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../../../Redux/store';
 import { logoutUser } from '../../../../Redux/services/authService';
 
-const ModernProfilePage = () => {
+interface ModernProfilePageProps {
+    onLogout: () => void;
+}
+
+const ModernProfilePage: React.FC<ModernProfilePageProps> = ({ onLogout }) => {
     const dispatch = useDispatch();
   const [isHovering, setIsHovering] = useState('');
   const navigate = useNavigate();
@@ -31,10 +35,7 @@ const ModernProfilePage = () => {
     { id: 'support', label: 'Get Support', icon: <LifeBuoy size={20} /> },
   ];
   
-  const handleLogout = () => {
-    logoutUser(dispatch);
-    navigate('/login');
-  };
+
   return (
     <div className="flex flex-col md:flex-row items-start gap-6 p-6 max-w-6xl mx-auto bg-gray-50 rounded-lg shadow-sm">
       {/* Left Column - User Profile Card */}
@@ -74,7 +75,7 @@ const ModernProfilePage = () => {
               <Settings size={20} className={`transition-all duration-300 ${isHovering === 'settings' ? 'rotate-90 text-red-400' : 'text-gray-600'}`} />
             </button>
             <button 
-            onClick={handleLogout}
+            onClick={onLogout}
               onMouseEnter={() => setIsHovering('logout')}
               onMouseLeave={() => setIsHovering('')}
               className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-300"

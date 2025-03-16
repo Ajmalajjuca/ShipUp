@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import axios from 'axios';
 import FormContainer from '../common/FormContainer';
 import { loginSuccess } from '../../Redux/slices/authSlice';
+import toast from 'react-hot-toast';
 
 const OTPVerification: React.FC = () => {
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
@@ -15,8 +16,11 @@ const OTPVerification: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const email = location.state?.email || '';
   
+  const email = location.state?.email || '';
+  const newPassword = location.state?.newPassword;
+  const isPasswordReset = location.state?.isPasswordReset;
+
   // Start countdown on component mount
   useEffect(() => {
     setCountdown(60);
@@ -65,24 +69,52 @@ const OTPVerification: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      // If this is password reset flow
+      if (isPasswordReset && newPassword) {
+        const response = await axios.post('http://localhost:3001/auth/verify-otp', {
+          email,
+          otp: otpValue,
+          newPassword
+        });
+
+        if (response.data.success) {
+          toast.success('Password reset successful!');
+          navigate('/login');
+        }
+        return;
+      }
+
+      // Registration verification flow
       const response = await axios.post('http://localhost:3001/auth/verify-otp', {
         email,
         otp: otpValue,
       });
       
-      const token = localStorage.getItem('token');
-      const pendingUser = JSON.parse(localStorage.getItem('pendingUser') || '{}');
+      const tempToken = sessionStorage.getItem('tempToken');
+      const pendingUser = JSON.parse(sessionStorage.getItem('pendingUser') || '{}');
 
-      if (!token) throw new Error('Authentication token not found');
+      if (!tempToken || !pendingUser) {
+        toast.error('Session expired. Please register again.');
+        navigate('/login');
+        return;
+      }
 
-      dispatch(loginSuccess({ user: pendingUser, token }));
-      localStorage.setItem('user', JSON.stringify(pendingUser));
-      localStorage.removeItem('pendingUser');
-      localStorage.removeItem('token'); // Clean up temporary token
+      // After successful OTP verification, move temp data to permanent storage
+      const permanentToken = response.data.token || tempToken;
+      dispatch(loginSuccess({ user: pendingUser, token: permanentToken }));
       
+      localStorage.setItem('authToken', permanentToken);
+      localStorage.setItem('userData', JSON.stringify(pendingUser));
+      
+      // Clear temporary storage
+      sessionStorage.removeItem('tempToken');
+      sessionStorage.removeItem('pendingUser');
+      
+      toast.success('Account verified successfully!');
       navigate('/home');
     } catch (error: any) {
       setError(error.response?.data?.error || 'Invalid OTP');
+      toast.error(error.response?.data?.error || 'Invalid OTP');
     } finally {
       setLoading(false);
     }
@@ -96,13 +128,26 @@ const OTPVerification: React.FC = () => {
       
       if (response.data.success) {
         setCountdown(60); // Reset countdown
-        alert('OTP resent successfully');
+        toast.success('OTP resent successfully!', {
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        });
       } else {
         throw new Error(response.data.message);
       }
       
     } catch (error: any) {
       setError(error.response?.data?.message || error.message || 'Failed to resend OTP');
+      toast.error(error.response?.data?.message || error.message || 'Failed to resend OTP', {
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      });
     } finally {
       setResending(false);
     }
@@ -138,11 +183,23 @@ const OTPVerification: React.FC = () => {
       )}
       
       <button
-        className={`w-full py-3 bg-indigo-900 text-white rounded-full font-medium hover:bg-indigo-800 transition ${(loading || resending) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`w-full py-3 bg-indigo-900 text-white rounded-full font-medium transition ${
+          (loading || resending) ? 'opacity-75 cursor-not-allowed' : 'hover:bg-indigo-800'
+        }`}
         onClick={() => otp.every(d => d) && verifyOtp(otp.join(''))}
         disabled={loading || resending || !otp.every(d => d)}
       >
-        {loading ? 'Verifying...' : 'Verify'}
+        {loading ? (
+          <div className="flex items-center justify-center">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Verifying...
+          </div>
+        ) : (
+          'Verify'
+        )}
       </button>
       
       {countdown > 0 ? (
@@ -151,11 +208,23 @@ const OTPVerification: React.FC = () => {
         </button>
       ) : (
         <button
-          className={`w-full py-3 text-indigo-900 font-medium mt-4 ${resending ? 'opacity-50 cursor-not-allowed' : 'hover:text-indigo-700'}`}
+          className={`w-full py-3 text-indigo-900 font-medium mt-4 transition ${
+            resending ? 'opacity-75 cursor-not-allowed' : 'hover:text-indigo-700'
+          }`}
           onClick={resendOtp}
           disabled={resending || loading}
         >
-          {resending ? 'Resending...' : 'Resend OTP'}
+          {resending ? (
+            <div className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Resending...
+            </div>
+          ) : (
+            'Resend OTP'
+          )}
         </button>
       )}
     </FormContainer>

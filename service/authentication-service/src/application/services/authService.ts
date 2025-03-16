@@ -20,4 +20,13 @@ export class AuthService {
   generateUserId(): string {
     return uuidv4();
   }
+
+  async verifyToken(token: string): Promise<any> {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      return decoded;
+    } catch (error) {
+      throw new Error('Invalid token');
+    }
+  }
 }

@@ -1,7 +1,7 @@
 // src/App.tsx
 import React, { JSX, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import { Route, Routes, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import RegistrationForm from './components/user/Login/RegistrationForm';
 import ShipUpHomepage from './components/user/Landing/Homepage';
 import ShipUpApp from './components/user/Home/Home';
@@ -15,11 +15,37 @@ import PartnerLog from './components/driver/PartnerLog';
 import Verification from './components/driver/Verification';
 import AdminLoginPage from './components/admin/AdminLoginPage';
 import AdminDashboard from './components/admin/dashboard/AdminDashboard';
+import { Toaster } from 'react-hot-toast';
+import { sessionManager } from './utils/sessionManager';
+import axios from 'axios';
+import { loginSuccess } from './Redux/slices/authSlice';
 
 const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
-  return user ? children : <Navigate to="/login" />;
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [isValid, setIsValid] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const verifySession = async () => {
+      const isValidToken = await sessionManager.verifyToken();
+      setIsValid(isValidToken);
+      setIsVerifying(false);
+    };
+    verifySession();
+  }, []);
+
+  if (isVerifying) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-900"></div>
+      </div>
+    );
+  }
+
+  return isValid ? children : <Navigate to="/login" state={{ from: location }} replace />;
 };
+
 const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { email } = useSelector((state: RootState) => state.driver);
   return email ? children : <Navigate to="/partner" />;
@@ -27,51 +53,56 @@ const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) 
 
 const AuthRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
-  return user ? <Navigate to="/home" /> : children;
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      const from = location.state?.from?.pathname || '/home';
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, location]);
+
+  return !user ? children : null;
 };
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { user } = useSelector((state: RootState) => state.auth);
   const [isSessionRestored, setIsSessionRestored] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const initializeApp = async () => {
-      const MIN_LOADING_TIME = 2000; // 2 seconds minimum loading time
+      const MIN_LOADING_TIME = 2000;
       const startTime = Date.now();
 
-      // Perform session restoration
-      await restoreSession(dispatch);
+      try {
+        const { token, user } = sessionManager.getSession();
+        if (token && user) {
+          const isValid = await sessionManager.verifyToken();
+          if (isValid) {
+            dispatch(loginSuccess({ user, token }));
+          } else {
+            sessionManager.clearSession();
+            navigate('/login');
+          }
+        }
+      } catch (error) {
+        console.error('Session restoration error:', error);
+        sessionManager.clearSession();
+      }
 
-      // Calculate elapsed time
       const elapsedTime = Date.now() - startTime;
       const remainingTime = MIN_LOADING_TIME - elapsedTime;
-
-      // Enforce minimum loading time if needed
       if (remainingTime > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingTime));
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
       }
 
       setIsSessionRestored(true);
     };
 
     initializeApp();
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (user && isSessionRestored) {
-      window.history.pushState(null, '', window.location.href);
-      const handleBackButton = (event: PopStateEvent) => {
-        if (user) {
-          window.history.pushState(null, '', window.location.href);
-          navigate('/home');
-        }
-      };
-      window.addEventListener('popstate', handleBackButton);
-      return () => window.removeEventListener('popstate', handleBackButton);
-    }
-  }, [user, isSessionRestored, navigate]);
+  }, [dispatch, navigate]);
 
   if (!isSessionRestored) {
     return (
@@ -92,92 +123,33 @@ function App() {
     );
   }
 
-
   return (
-    <Routes>
-      <Route path="/" element={<ShipUpHomepage />} />
-      <Route
-        path="/login"
-        element={
-          <AuthRoute>
-            <RegistrationForm />
-          </AuthRoute>
-        }
-      />
-      <Route
-        path="/otp-verification"
-        element={
-          <AuthRoute>
-            <OTPVerification />
-          </AuthRoute>
-        }
-      />
-      <Route
-        path="/reset-password"
-        element={
-          <AuthRoute>
-            <PasswordReset />
-          </AuthRoute>
-        }
-      />
-      <Route
-        path="/home"
-        element={
-          <PrivateRoute>
-            <ShipUpApp />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <PrivateRoute>
-            <Profile />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-
-          <PartnerReg />
-
-        }
-      />
-      <Route
-        path="/partner"
-        element={
-
-          <PartnerLog/>
-
-        }
-      />
-      <Route
-        path="/partner/dashboard"
-        element={
-          <PrivatePartnerRoute>
-            <Verification/>
-          </PrivatePartnerRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          
-            <AdminLoginPage/>
-          
-        }
-      />
-      <Route
-        path="/admin/dashboard"
-        element={
-          
-            <AdminDashboard/>
-          
-        }
-      />
-    </Routes>
-
+    <>
+      <Toaster position="top-right" />
+      <Routes>
+        <Route path="/" element={<ShipUpHomepage />} />
+        <Route path="/login" element={<AuthRoute><RegistrationForm /></AuthRoute>} />
+        <Route path="/reset-password" element={<AuthRoute><PasswordReset /></AuthRoute>} />
+        <Route path="/otp-verification" element={<AuthRoute><OTPVerification /></AuthRoute>} />
+        
+        {/* Protected Routes */}
+        <Route path="/home" element={<PrivateRoute><ShipUpApp /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        
+        {/* Partner Routes */}
+        <Route path="/register" element={<PartnerReg />} />
+        <Route path="/partner" element={<PartnerLog />} />
+        <Route path="/partner/dashboard" element={
+          <PrivatePartnerRoute><Verification /></PrivatePartnerRoute>
+        } />
+        
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLoginPage />} />
+        <Route path="/admin/dashboard" element={
+          <PrivateRoute><AdminDashboard /></PrivateRoute>
+        } />
+      </Routes>
+    </>
   );
 }
 

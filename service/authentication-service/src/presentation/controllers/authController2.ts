@@ -217,7 +217,6 @@ export const authController = {
       }
       
       const result = await sendOtp.execute(email);
-      console.log('result...',result);
       res.status(result.success ? 200 : 400).json({
         success: result.success,
         message: result.success ? 'OTP sent successfully' : result.error
@@ -233,31 +232,87 @@ export const authController = {
   // Existing verify OTP (unchanged, handles registration verification)
   async verifyOtp(req: Request, res: Response) {
     try {
-      const { email, otp } = req.body;
+      const { email, otp, newPassword } = req.body;
       if (!email || !otp) {
         res.status(400).json({ success: false, error: 'Email and OTP are required' });
         return;
       }
-      
 
-      const result = await verifyOtp.execute(email, otp);
+      const result = await verifyOtp.execute(email, otp, newPassword);
       if (!result.success) {
         res.status(400).json(result);
         return;
       }
 
+      // If newPassword is provided, this was a password reset flow
+      if (newPassword) {
+        res.status(200).json({
+          success: true,
+          message: 'Password reset successful'
+        });
+        return;
+      }
+
+      // Normal OTP verification flow
       res.status(200).json({
         success: true,
         message: 'OTP verified successfully',
         token: result.token
       });
-      return;
+      
     } catch (error) {
       console.error('Verify OTP error:', error);
       res.status(500).json({ success: false, error: 'Internal server error' });
-      return;
     }
   },
+
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        res.status(400).json({ 
+          success: false, 
+          message: 'Email is required' 
+        });
+        return;
+      }
+
+      // Verify user exists
+      const user = await authRepository.findByEmail(email);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+        return;
+      }
+
+      // Send OTP
+      const result = await sendOtp.execute(email);
+      if (!result.success) {
+        res.status(400).json(result);
+        return;
+      }
+
+      // Store the temporary token for password reset flow
+      const tempToken = authService.generateToken(user.userId, email, user.role);
+      
+      res.status(200).json({
+        success: true,
+        message: 'OTP sent successfully',
+        token: tempToken // Frontend will use this for OTP verification
+      });
+      
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error' 
+      });
+    }
+  },
+
   async delete(req: Request, res: Response) {
     try {
       const { userId } = req.params;
@@ -268,6 +323,36 @@ export const authController = {
       console.error('Delete error:', error);
       res.status(500).json({ success: false, error: 'Internal server error' });
       return;
+    }
+  },
+
+  async verifyToken(req: Request, res: Response) {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        res.status(401).json({ valid: false, message: 'No token provided' });
+        return 
+      }
+
+      const token = authHeader.split(' ')[1]; // Remove 'Bearer ' prefix
+      if (!token) {
+        res.status(401).json({ valid: false, message: 'Invalid token format' });
+        return 
+      }
+
+      try {
+        // Verify token using your JWT service or auth service
+        const decoded = await authService.verifyToken(token);
+        res.status(200).json({ valid: true, user: decoded });
+        return 
+      } catch (error) {
+        res.status(401).json({ valid: false, message: 'Invalid token' });
+        return 
+      }
+    } catch (error) {
+      console.error('Token verification error:', error);
+      res.status(500).json({ valid: false, message: 'Internal server error' });
+      return 
     }
   },
 

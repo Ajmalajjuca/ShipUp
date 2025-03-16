@@ -10,17 +10,31 @@ export class VerifyOtp {
     private authRepo: AuthRepository
   ) {}
 
-  async execute(email: string, otp: string): Promise<{ success: boolean; error?: string; token?: string }> {
+  async execute(email: string, otp: string, newPassword?: string): Promise<{ success: boolean; error?: string; token?: string }> {
     try {
-      
       const result = await this.otpService.verifyOtp(email, otp);
-      console.log('isValid....',result);
-
+      
       if (!result.isValid) {
         return { success: false, error: 'Invalid or expired OTP' };
       }
 
-      
+      // If newPassword is provided, this is a password reset flow
+      if (newPassword) {
+        const user = await this.authRepo.findByEmail(email);
+        if (!user) {
+          return { success: false, error: 'User not found' };
+        }
+
+        // Update password in auth repository
+        await this.authRepo.updatePassword(user.userId, newPassword);
+        
+        // Clear OTP after successful password reset
+        await this.otpService.clearOtp(email);
+        
+        return { success: true };
+      }
+
+      // Existing registration verification logic
       const pendingDataJson = await this.otpService['redisClient'].get(`${email}:pending`);
       if (!pendingDataJson) {
         return { success: false, error: 'No pending registration found' };

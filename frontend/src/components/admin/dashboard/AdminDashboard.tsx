@@ -26,6 +26,7 @@ import UserList from './components/users/UserList';
 import PartnerList from './components/partners/PartnerList';
 import PartnerRequest from './components/partners/PartnerRequest';
 import { useNavigate } from 'react-router-dom';
+import { sessionManager } from "../../../utils/sessionManager"; 
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -136,6 +137,9 @@ const AdminDashboard: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
 const navigate = useNavigate()
   
+const handleLogout = () => {
+  sessionManager.logout();
+};
 
   const users = [
     { sl: 1, name: 'Anika Tahosin', contactInfo: 'a****@gmail.com, +8*******', totalOrders: 19, totalAmount: 651.0, availablePoints: 24, status: true },
@@ -429,8 +433,12 @@ const navigate = useNavigate()
                 <h4 className="text-sm font-medium">Admin User</h4>
                 <p className="text-xs text-gray-500">System Administrator</p>
               </div>
-              <LogOut size={18} className="text-gray-500 cursor-pointer hover:text-red-500 transition-colors duration-200" />
-            </div>
+              <button
+              onClick={handleLogout}
+              className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-sm"
+            >
+              <LogOut size={18} />
+            </button>            </div>
           </div>
         ) : (
           <div className="p-2 border-t border-gray-200 flex justify-center">

@@ -26,12 +26,17 @@ const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const [isVerifying, setIsVerifying] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const verifySession = async () => {
       const isValidToken = await sessionManager.verifyToken();
       setIsValid(isValidToken);
       setIsVerifying(false);
+
+      if (isValidToken && location.pathname.startsWith('/admin') && user?.role !== 'admin') {
+        navigate('/admin');
+      }
     };
     verifySession();
   }, []);
@@ -44,12 +49,12 @@ const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
     );
   }
 
-  return isValid ? children : <Navigate to="/login" state={{ from: location }} replace />;
+  return isValid ? children : <Navigate to="/" state={{ from: location }} replace />;
 };
 
 const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
-  const { email } = useSelector((state: RootState) => state.driver);
-  return email ? children : <Navigate to="/partner" />;
+  const { emailId } = useSelector((state: RootState) => state.driver);
+  return emailId ? children : <Navigate to="/partner" />;
 };
 
 const AuthRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {

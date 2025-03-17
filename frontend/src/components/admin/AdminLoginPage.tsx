@@ -1,36 +1,48 @@
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { sessionManager } from "../../utils/sessionManager"; // Adjust path as needed
 
 
 const AdminLoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Check if already logged in
+  useEffect(() => {
+    const { token, user } = sessionManager.getSession();
+    if (token && user?.role === "admin") {
+      navigate("/admin/dashboard");
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+    setLoading(true);
+
     try {
       const response = await axios.post("http://localhost:3001/auth/login", {
         email,
         password,
       });
-      
-      if (response.status === 200&&response.data.role.role==='admin') {
-        console.log("Login successful", response.data);
-        localStorage.setItem("token", response.data.token); // Store token
-        navigate('/admin/dashboard')
+
+      if (response.status === 200 && response.data.user.role === "admin") {
+        // Store session
+        sessionManager.setSession(response.data.user, response.data.token);
+        navigate("/admin/dashboard");
         alert("Login successful!");
-        // Redirect or navigate to the dashboard (optional)
-      }else{
-        navigate('/admin')
-        alert('Access denied: Admins only')
+      } else {
+        navigate("/admin");
+        alert("Access denied: Admins only");
       }
-    } catch (error: any) {        
-      console.error("Login failed", error.response?.data?.error || error.message);
+    } catch (error: any) {
+      console.log("Login failed", error.response?.data?.error || error.message);
       alert(error.response?.data?.error || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -130,9 +142,12 @@ const AdminLoginPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition duration-200 ease-in-out"
+              className={`w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition duration-200 ease-in-out ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={loading}
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
         </div>

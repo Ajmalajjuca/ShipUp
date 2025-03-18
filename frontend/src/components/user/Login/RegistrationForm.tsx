@@ -165,7 +165,6 @@ const RegistrationForm: React.FC = () => {
         {loading ? 'Loading...' : initialStage}
       </button>
 
-<<<<<<< Updated upstream
       <div className="flex justify-end items-center w-full">
       {initialStage === 'Sign in' && (
         <button
@@ -176,19 +175,7 @@ const RegistrationForm: React.FC = () => {
           Forgot Password?
         </button>
       )}
-=======
-      <div className="flex justify-between items-center w-full mt-4">
-        {initialStage === 'Sign in' && (
-          <button
-            type="button"
-            onClick={() => navigate('/reset-password')}
-            className="text-blue-600 hover:underline text-sm font-medium"
-          >
-            Forgot Password?
-          </button>
-        )}
-        
->>>>>>> Stashed changes
+      
       </div>
 
     </FormContainer>

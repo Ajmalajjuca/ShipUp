@@ -2,13 +2,18 @@ import axios from 'axios';
 import DocumentLayout from './components/DocumentLayout';
 import { DOCUMENT_STEPS } from './constants';
 import { useEffect, useState, useMemo } from 'react';
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../Redux/store";
 import { useNavigate } from 'react-router-dom';
 import DeliveryPartnerDashboard from './components/DeliveryPartnerDashboard';
+import { sessionManager } from '../../utils/sessionManager';
+import { setEmailId } from '../../Redux/slices/driverSlice';
 
 const Verification = () => {
     const email = useSelector((state: RootState) => state.driver.email);
+    const dispatch = useDispatch();
+    console.log('Email:', email);
+    
     
     
     type VerificationData = {
@@ -27,25 +32,55 @@ const Verification = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!email) return;
-
-        const getData = async () => {
+        const checkSessionAndFetchData = async () => {
             try {
-                const response = await axios.get(`http://localhost:3003/api/drivers/verify-doc?email=${email}`);
-                const data = response.data?.data || {}; // Prevents accessing undefined properties
+                const { token, partnerData } = sessionManager.getPartnerSession();
+                console.log('Session data:', { token: !!token, partnerData }); // Debug log
+                
+                if (!token || !partnerData) {
+                    console.log('No valid session found');
+                    navigate('/partner');
+                    return;
+                }
 
-                setVerificationData({
-                    BankDetails: data?.BankDetails || false,
-                    PersonalDocuments: data?.PersonalDocuments || false,
-                    VehicleDetails: data?.VehicleDetails || false
-                });
+                if (!email && partnerData.email) {
+                    dispatch(setEmailId(partnerData.email));
+                }
+
+                try {
+                    console.log('Making request with token:', token); // Debug log
+                    const response = await axios.get(
+                        `http://localhost:3003/api/drivers/verify-doc?email=${partnerData.email}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            }
+                        }
+                    );
+                    
+                    console.log('API Response:', response.data); // Debug log
+                    const data = response.data?.data || {};
+                    setVerificationData({
+                        BankDetails: data?.BankDetails || false,
+                        PersonalDocuments: data?.PersonalDocuments || false,
+                        VehicleDetails: data?.VehicleDetails || false
+                    });
+                } catch (error: any) {
+                    console.error('API Error:', error.response?.data || error.message);
+                    if (axios.isAxiosError(error) && error.response?.status === 401) {
+                        console.log('Clearing session due to auth error');
+                        sessionManager.clearPartnerSession();
+                        navigate('/partner');
+                    }
+                }
             } catch (error) {
-                console.error('Error fetching verification data:', error);
+                console.error('Session error:', error);
+                navigate('/partner');
             }
         };
 
-        getData();
-    }, [email]);
+        checkSessionAndFetchData();
+    }, [navigate, dispatch, email]);
 
     const isVerified = useMemo(() => (
         verificationData.BankDetails && verificationData.PersonalDocuments && verificationData.VehicleDetails

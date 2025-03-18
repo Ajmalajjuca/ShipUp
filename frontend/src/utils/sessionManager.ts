@@ -1,5 +1,6 @@
 import { store } from '../Redux/store';
 import { loginSuccess, logout } from '../Redux/slices/authSlice';
+import { setEmailId, clearAuth } from '../Redux/slices/driverSlice';
 
 export const sessionManager = {
   setSession(user: any, token: string) {
@@ -90,8 +91,7 @@ export const sessionManager = {
       console.error('Token verification failed:', error);
       return false;
     }
-<<<<<<< Updated upstream
-=======
+
   },
 
   logout() {
@@ -141,7 +141,52 @@ export const sessionManager = {
   isAdminAuthenticated() {
     const { token, user } = this.getSession();
     return token && user?.role === 'admin';
->>>>>>> Stashed changes
+  },
+
+  setPartnerSession(token: string, partnerData: any) {
+    localStorage.setItem('partnerToken', token);
+    localStorage.setItem('partnerData', JSON.stringify(partnerData));
+  },
+
+  getPartnerSession() {
+    const token = localStorage.getItem('partnerToken');
+    const partnerData = JSON.parse(localStorage.getItem('partnerData') || 'null');
+    return { token, partnerData };
+  },
+
+  clearPartnerSession() {
+    localStorage.removeItem('partnerToken');
+    localStorage.removeItem('partnerData');
+  },
+
+  async verifyPartnerToken() {
+    const { token } = this.getPartnerSession();
+    if (!token) return false;
+
+    try {
+      const response = await fetch('http://localhost:3001/auth/verify-partner-token', {
+        headers: { 
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        this.clearPartnerSession();
+        return false;
+      }
+
+      const data = await response.json();
+      return data.valid;
+    } catch (error) {
+      console.error('Partner token verification failed:', error);
+      this.clearPartnerSession();
+      return false;
+    }
+  },
+
+  isPartnerAuthenticated() {
+    const { token } = this.getPartnerSession();
+    return !!token;
   }
 };
 

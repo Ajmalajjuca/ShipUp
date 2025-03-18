@@ -9,6 +9,7 @@ import DocumentLayout from './components/DocumentLayout';
 import { VehicleDetailsForm } from './components/VehicleDetailsForm';
 import { BankDetailsForm } from './components/BankDetailsForm';
 import axios, { AxiosError } from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const PartnerReg = () => {
     const [currentStep, setCurrentStep] = useState<string>('registration');
@@ -18,7 +19,7 @@ const PartnerReg = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
-
+    const navigate = useNavigate()
     const handleFormSubmit = (data: Partial<DriverRegistrationData>) => {
         if (!data.fullName || !data.mobileNumber || !data.dateOfBirth || !data.email || !data.address) {
             return; // Form validation will be handled in RegistrationForm
@@ -267,7 +268,7 @@ const PartnerReg = () => {
                                 <a href="#" className="text-red-500 text-sm">Need Help? Contact Us</a>
                             </div>
                             <div className="mt-4 text-center">
-                                <button
+                                <button onClick={()=>navigate('/partner')}
 
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                                 >

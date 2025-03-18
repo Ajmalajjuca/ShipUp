@@ -3,6 +3,7 @@ import axios from "axios";
 import { useDispatch } from "react-redux";
 import { setEmailId } from "../../Redux/slices/driverSlice"; // Import Redux action
 import { useNavigate } from 'react-router-dom'
+import { sessionManager } from '../../utils/sessionManager';
 
 const PartnerLog: React.FC = () => {
   // State management
@@ -61,7 +62,6 @@ const PartnerLog: React.FC = () => {
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic validation
     const newErrors: Record<string, string> = {};
 
     if (!otp) {
@@ -77,27 +77,37 @@ const PartnerLog: React.FC = () => {
       setMessage("");
 
       try {
-        // Call API to verify OTP
-        const response = await axios.post("http://localhost:3001/auth/verify-login-otp", { email, otp });
+        const response = await axios.post("http://localhost:3001/auth/verify-login-otp", { 
+          email, 
+          otp 
+        });
+
+        console.log('Login response:', response.data); // Debug log
 
         if (response.data.success) {
-          // Store the token
-          localStorage.setItem("token", response.data.token);
+          // Store email in Redux
+          dispatch(setEmailId(email));
+
+          // Set partner session with token and data
+          sessionManager.setPartnerSession(response.data.token, {
+            email,
+            partnerId: response.data.partnerId,
+            role: 'driver'
+          });
 
           setStep("success");
           setMessage("Login successful!");
 
-          // Redirect to home page after successful verification
+          // Add a small delay before navigation
           setTimeout(() => {
-            navigate("/partner/dashboard")
+            navigate("/partner/dashboard");
           }, 1500);
         } else {
           setErrors({ otp: response.data.message || "Invalid OTP" });
         }
       } catch (error: any) {
+        console.error('Login error:', error.response?.data || error.message);
         setErrors({ otp: error.response?.data?.message || "Failed to verify OTP" });
-      } finally {
-        setIsSubmitting(false);
       }
     }
   };

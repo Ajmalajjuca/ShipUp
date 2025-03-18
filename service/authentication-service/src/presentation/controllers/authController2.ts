@@ -184,46 +184,44 @@ export const authController = {
     try {
       const { email, otp } = req.body;
       if (!email || !otp) {
-        res.status(400).json({ success: false, error: 'Email and OTP are required' });
+        res.status(400).json({ success: false, message: 'Email and OTP are required' });
         return;
       }
 
-      const isValid = await otpService.verifyOtp(email, otp);
-      if (!isValid) {
-        res.status(401).json({ success: false, error: 'Invalid or expired OTP' });
+      // Verify OTP
+      const verificationResult = await otpService.verifyOtp(email, otp);
+      if (!verificationResult.isValid) {
+        res.status(401).json({ success: false, message: 'Invalid or expired OTP' });
         return;
       }
 
-      const authUser = await authRepository.findByEmail(email);
-      if (!authUser) {
-        res.status(404).json({ success: false, error: 'User not found' });
+      // Get partner record
+      const partner = await authRepository.findByEmail(email);
+      if (!partner) {
+        res.status(404).json({ success: false, message: "Partner not found" });
         return;
       }
 
-      if (authUser.role === 'user') {
-        res.status(400).json({ success: false, error: 'Use password-based login for users' });
+      // Verify partner role
+      if (partner.role !== 'driver') {
+        res.status(403).json({ success: false, message: "Not authorized as partner" });
         return;
       }
 
-      const token = authService.generateToken(authUser.userId, authUser.email, authUser.role);
-      await otpService['redisClient'].del(`${email}:otp`);
+      // Generate token
+      const token = authService.generateToken(partner.userId, email, 'driver');
 
       res.status(200).json({
         success: true,
-        message: 'Login successful',
-        user: {
-          userId: authUser.userId,
-          email: authUser.email,
-          role: authUser.role,
-          // fullName will be fetched in VerifyOtp for registration, not here
-        },
-        token
+        message: "OTP verified successfully",
+        token,
+        partnerId: partner.userId,
+        email: partner.email,
+        role: 'driver'
       });
-      return;
     } catch (error) {
-      console.error('Login OTP verification error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
-      return;
+      console.error('OTP verification error:', error);
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
   },
 
@@ -407,6 +405,59 @@ export const authController = {
     } catch (error) {
       console.error('Password update error:', error);
       res.status(500).json({ success: false, message: 'Failed to update password' });
+    }
+  },
+
+  async verifyPartnerToken(req: Request, res: Response) {
+    try {
+      const authHeader = req.headers.authorization;
+      console.log('Auth header received:', authHeader); // Debug log
+
+      if (!authHeader) {
+        res.status(401).json({ valid: false, message: 'No token provided' });
+        return;
+      }
+
+      const token = authHeader.split(' ')[1];
+      if (!token) {
+        res.status(401).json({ valid: false, message: 'Invalid token format' });
+        return;
+      }
+
+      try {
+        console.log('Verifying token...'); // Debug log
+        const decoded = await authService.verifyToken(token);
+        console.log('Decoded token:', decoded); // Debug log
+
+        // Check if the user is a partner/driver
+        const user = await authRepository.findByEmail(decoded.email);
+        console.log('Found user:', user); // Debug log
+
+        if (!user) {
+          res.status(401).json({ valid: false, message: 'User not found' });
+          return;
+        }
+
+        if (user.role !== 'driver') {
+          res.status(401).json({ valid: false, message: 'Not authorized as partner' });
+          return;
+        }
+
+        res.status(200).json({ 
+          valid: true, 
+          partner: {
+            userId: user.userId,
+            email: user.email,
+            role: user.role
+          }
+        });
+      } catch (error) {
+        console.error('Token verification error:', error);
+        res.status(401).json({ valid: false, message: 'Invalid token' });
+      }
+    } catch (error) {
+      console.error('Partner token verification error:', error);
+      res.status(500).json({ valid: false, message: 'Internal server error' });
     }
   },
 

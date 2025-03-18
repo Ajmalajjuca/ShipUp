@@ -1,7 +1,10 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 import { Driver } from '../../domain/entities/driver';
 
-const DriverSchema = new mongoose.Schema<Driver>({
+// Create an interface that extends both Driver and Document
+export interface IDriver extends Driver, Document {}
+
+const driverSchema = new Schema({
   partnerId: { type: String, required: true, unique: true },
   fullName: { type: String, required: true },
   mobileNumber: { type: String, required: true },
@@ -14,21 +17,30 @@ const DriverSchema = new mongoose.Schema<Driver>({
   accountNumber: { type: String, required: true },
   ifscCode: { type: String, required: true },
   upiId: { type: String, required: true },
-  aadharPath: { type: String, required: true },
-  panPath: { type: String, required: true },
-  licensePath: { type: String, required: true },
-  insuranceDocPath: { type: String, required: true },
-  pollutionDocPath: { type: String, required: true },
-  profilePicturePath: { type: String, required: true },
+  
+  // Document paths
+  aadharPath: { type: String },
+  panPath: { type: String },
+  licensePath: { type: String },
+  insuranceDocPath: { type: String },
+  pollutionDocPath: { type: String },
+  profilePicturePath: { type: String },
+
+  // Status flags
+  isActive: { type: Boolean, default: true },
+  isVerified: { type: Boolean, default: false },
   bankDetailsCompleted: { type: Boolean, default: false },
-  vehicleDetailsCompleted: { type: Boolean, default: false },
   personalDocumentsCompleted: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
+  vehicleDetailsCompleted: { type: Boolean, default: false },
+
+  // Order statistics
+  totalOrders: { type: Number, default: 0 },
+  ongoingOrders: { type: Number, default: 0 },
+  completedOrders: { type: Number, default: 0 },
+  canceledOrders: { type: Number, default: 0 }
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
+  timestamps: true
 });
 
-export const DriverModel = mongoose.model<Driver>('Driver', DriverSchema);
+// Create and export the model
+export const DriverModel = mongoose.model<IDriver>('Driver', driverSchema);

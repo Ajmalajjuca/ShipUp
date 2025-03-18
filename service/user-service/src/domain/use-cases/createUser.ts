@@ -26,7 +26,8 @@ export class CreateUser {
         [],          // addresses (default empty array)
         false,       // onlineStatus (default)
         false,       // isVerified (default)
-        referralId
+        referralId,
+        true
       );
       
       const createdUser = await this.userRepo.create(user);

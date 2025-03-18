@@ -9,6 +9,9 @@ const router = express.Router();
 router.post('/users', userController.create);
 router.get('/users/:userId', userController.get);
 
+// Add this new route before the protected routes
+router.get('/users', userController.getAll);
+
 // Protected routes - require authentication
 router.use(authMiddleware);
 

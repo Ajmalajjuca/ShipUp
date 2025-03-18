@@ -3,23 +3,38 @@ dotenv.config();
 import express from 'express';
 import { connectDB } from './infrastructure/database/mongoose';
 import partnerRoutes from './presentation/routes/driverRoutes';
-import cors from 'cors'; 
+import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
 
 const app = express();
 
-// Enable CORS for your frontend origin
+// Enable CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // Allow requests from your frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
 
-// Handle multipart/form-data for file uploads
-import multer from 'multer';
-const upload = multer({ dest: 'uploads/' }); // Temporary storage, adjust as needed
-app.use(upload.any()); // Allow any files to be uploaded
+// Serve static files from different upload directories
+app.use('/uploads/documents', express.static(path.join(__dirname, '../uploads/documents')));
+app.use('/uploads/profile-images', express.static(path.join(__dirname, '../uploads/profile-images')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Create upload directories if they don't exist
+const uploadDirs = [
+  path.join(__dirname, '../uploads'),
+  path.join(__dirname, '../uploads/documents'),
+  path.join(__dirname, '../uploads/profile-images')
+];
+
+uploadDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 connectDB();
 app.use('/api', partnerRoutes);

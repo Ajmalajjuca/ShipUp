@@ -65,11 +65,9 @@ export class OtpService {
 
   async clearOtp(email: string): Promise<void> {
     try {
-      await Promise.all([
-        this.redisClient.del(`${email}:otp`),
-      ]);
+      await this.redisClient.del(`${email}:otp`);
     } catch (error) {
-      console.error(`Error clearing OTP and user for ${email}:`, error);
+      console.error('Error clearing OTP:', error);
     }
   }
 }

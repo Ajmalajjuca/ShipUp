@@ -62,4 +62,13 @@ export class UserRepositoryImpl implements UserRepository {
       throw new Error(`Failed to delete user: ${error}`);
     }
   }
+
+  async findAll(): Promise<User[]> {
+    try {
+      const users = await UserModel.find().lean();
+      return users;
+    } catch (error) {
+      throw new Error(`Failed to find users: ${error}`);
+    }
+  }
 }

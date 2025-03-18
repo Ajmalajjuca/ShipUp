@@ -172,5 +172,27 @@ export const userController = {
       console.error('Update profile error:', error);
       res.status(500).json({ success: false, message: 'Failed to update profile' });
     }
+  },
+
+  async getAll(req: Request, res: Response) {
+    try {
+      const users = await userRepository.findAll();
+      
+      // Add full URL for profile images
+      const usersWithFullUrls = users.map(user => ({
+        ...user,
+        profileImage: user.profileImage 
+          ? `${API_URL}/uploads/${user.profileImage}`
+          : null
+      }));
+
+      res.status(200).json({ 
+        success: true, 
+        users: usersWithFullUrls 
+      });
+    } catch (error) {
+      console.error('Get all users error:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
   }
 };

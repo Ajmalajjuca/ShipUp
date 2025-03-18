@@ -8,6 +8,7 @@ export class User {
     public onlineStatus: boolean,
     public isVerified: boolean,
     public referralId: string,
+    public status:boolean,
     public profileImage?: string,
     public createdAt?: Date,
     public updatedAt?: Date,

@@ -13,7 +13,7 @@ export class SendOtp {
     
 
     const otp = this.otpService.generateOtp();
-    await this.emailService.sendOtpEmail(email, otp);
+    // await this.emailService.sendOtpEmail(email, otp);
     await this.otpService.storeOtp(email, otp);
     
 

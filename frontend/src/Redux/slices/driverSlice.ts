@@ -10,7 +10,7 @@ const initialState: DriverState = {
 };
 
 const driverSlice = createSlice({
-    name: "auth",
+    name: "driver",
     initialState,
     reducers: {
         setEmailId: (state, action: PayloadAction<string>) => {

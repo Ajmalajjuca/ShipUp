@@ -25,8 +25,9 @@ import {
 import UserList from './components/users/UserList';
 import PartnerList from './components/partners/PartnerList';
 import PartnerRequest from './components/partners/PartnerRequest';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { sessionManager } from "../../../utils/sessionManager"; 
+import PartnerRequestView from './components/partners/PartnerRequestView';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -135,11 +136,12 @@ const AdminDashboard: React.FC = () => {
   const [activeSubItem, setActiveSubItem] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
-const navigate = useNavigate()
+  const navigate = useNavigate();
+  const location = useLocation();
   
-const handleLogout = () => {
-  sessionManager.logout();
-};
+  const handleLogout = () => {
+    sessionManager.logout();
+  };
 
   const users = [
     { sl: 1, name: 'Anika Tahosin', contactInfo: 'a****@gmail.com, +8*******', totalOrders: 19, totalAmount: 651.0, availablePoints: 24, status: true },
@@ -197,14 +199,104 @@ const handleLogout = () => {
     { title: 'Failed To Deliver', count: 2, icon: <AlertCircle size={20} />, color: 'text-red-500' }
   ];
 
+  // Function to render the main content based on route and activeSubItem
+  const renderMainContent = () => {
+    // Check if we're on a partner request view page
+    if (location.pathname.includes('/partner-requests/')) {
+      return <PartnerRequestView />;
+    }
+
+    // Otherwise render based on activeSubItem
+    switch (activeSubItem) {
+      case 'User List':
+        return <UserList />;
+      case 'Partner List':
+        return <PartnerList />;
+      case 'Requests':
+        return <PartnerRequest />;
+      default:
+        return (
+          <>
+            {/* Dashboard content */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-700 mb-2">Welcome, Admin!</h2>
+              <p className="text-gray-600">Monitor your logistics operations and statistics</p>
+            </div>
+
+            {/* Business Analytics */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <BarChart2 size={20} className="text-blue-500 mr-2" />
+                  <h2 className="text-lg font-semibold text-gray-700">Business Analytics</h2>
+                </div>
+                <select 
+                  className="border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Select time period"
+                >
+                  <option>Overall Statistics</option>
+                  <option>Weekly Report</option>
+                  <option>Monthly Report</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {orderStats.map((stat, index) => (
+                  <OrderCard 
+                    key={index}
+                    title={stat.title}
+                    count={stat.count}
+                    icon={stat.icon}
+                    color={stat.color}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {secondaryStats.map((stat, index) => (
+                <div key={index} className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                  <div>
+                    <h3 className="text-sm text-gray-600">{stat.title}</h3>
+                    <p className="text-xl font-bold">{stat.count}</p>
+                  </div>
+                  <span className={`${stat.color}`}>{stat.icon}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Order Statistics */}
+            <div>
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                <div className="flex items-center mb-3 md:mb-0">
+                  <Package size={20} className="text-blue-500 mr-2" />
+                  <h2 className="text-lg font-semibold text-gray-700">Order Statistics</h2>
+                </div>
+                <div className="flex space-x-2">
+                  <button className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm hover:shadow-md transition-shadow duration-200">This Year</button>
+                  <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300 transition-colors duration-200">This Month</button>
+                  <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300 transition-colors duration-200">This Week</button>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                <h3 className="text-lg font-semibold text-gray-700 mb-4">Order Status Statistics</h3>
+                <div className="h-64 w-full bg-gray-100 rounded-lg flex items-center justify-center">
+                  <p className="text-gray-500">Chart placeholder - Order status distribution</p>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Improved Sidebar with better styling and animations */}
-      <div 
-        className={`${isMobile ? 'fixed' : 'relative'} z-20 h-full transform transition-all duration-300 ease-in-out 
-          ${sidebarOpen ? 'w-64 translate-x-0' : 'w-16 translate-x-0'} 
-          bg-white shadow-lg flex flex-col`}
-      >
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar - Always visible */}
+      <div className={`${isMobile ? 'fixed' : 'relative'} z-20 h-full transform transition-all duration-300 ease-in-out 
+        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-16 translate-x-0'} 
+        bg-white shadow-lg flex flex-col`}>
         {/* Logo */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center">
@@ -229,6 +321,7 @@ const handleLogout = () => {
           <button 
             className={`text-gray-500 hover:text-gray-700 transition-colors duration-200 focus:outline-none ${!sidebarOpen && 'hidden'}`}
             onClick={toggleSidebar}
+            title="Toggle sidebar"
           >
             <ChevronLeft size={20} />
           </button>
@@ -436,9 +529,11 @@ const handleLogout = () => {
               <button
               onClick={handleLogout}
               className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-sm"
+                title="Logout"
             >
               <LogOut size={18} />
-            </button>            </div>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="p-2 border-t border-gray-200 flex justify-center">
@@ -449,7 +544,7 @@ const handleLogout = () => {
         )}
       </div>
       
-      {/* Overlay for mobile when sidebar is open */}
+      {/* Mobile sidebar overlay */}
       {sidebarOpen && isMobile && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-10"
@@ -457,15 +552,16 @@ const handleLogout = () => {
         ></div>
       )}
 
-      {/* Main content - adjusted to respect sidebar width */}
+      {/* Main Content Area */}
       <div className={`flex-1 flex flex-col overflow-hidden ${isMobile && sidebarOpen ? 'ml-64' : ''}`}>
-        {/* Navbar */}
+        {/* Top Navigation - Always visible */}
         <header className="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10">
           {/* Mobile menu toggle */}
           {isMobile ? (
             <button 
               className="text-gray-500 mr-4 md:hidden" 
               onClick={toggleSidebar}
+              title="Toggle menu"
             >
               <Menu size={24} />
             </button>
@@ -474,13 +570,16 @@ const handleLogout = () => {
               <button 
                 className="text-gray-500 mr-4" 
                 onClick={toggleSidebar}
+                title="Toggle menu"
               >
                 <Menu size={24} />
               </button>
             )
           )}
           
-          <h1 className="text-xl font-semibold text-gray-800">{activeSubItem || activeItem}</h1>
+          <h1 className="text-xl font-semibold text-gray-800">
+            {location.pathname.includes('/partner-requests/') ? 'Partner Request Details' : (activeSubItem || activeItem)}
+          </h1>
 
           <div className="flex items-center space-x-4">
             <div className="relative hidden md:block">
@@ -508,84 +607,11 @@ const handleLogout = () => {
           </div>
         </header>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
-          {/* Welcome message - always shown */}
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Welcome, Admin!</h2>
-            <p className="text-gray-600">Monitor your logistics operations and statistics</p>
+        {/* Main Content - Changes based on route/active item */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+          <div className="container mx-auto px-6 py-8">
+            {renderMainContent()}
           </div>
-
-          {/* Conditionally render components based on activeSubItem */}
-          {activeSubItem === 'User List' && <UserList users={users} />}
-          {activeSubItem === 'Partner List' && <PartnerList partners={partners} />}
-          {activeSubItem === 'Requests' && <PartnerRequest requests={requests} />}
-
-          {/* Dashboard content - only shown when on the Dashboard page */}
-          {activeItem === 'Dashboard' && !activeSubItem && (
-            <>
-              {/* Business Analytics */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <BarChart2 size={20} className="text-blue-500 mr-2" />
-                    <h2 className="text-lg font-semibold text-gray-700">Business Analytics</h2>
-                  </div>
-                  <select className="border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>Overall Statistics</option>
-                    <option>Weekly Report</option>
-                    <option>Monthly Report</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {orderStats.map((stat, index) => (
-                    <OrderCard 
-                      key={index}
-                      title={stat.title}
-                      count={stat.count}
-                      icon={stat.icon}
-                      color={stat.color}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                {secondaryStats.map((stat, index) => (
-                  <div key={index} className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
-                    <div>
-                      <h3 className="text-sm text-gray-600">{stat.title}</h3>
-                      <p className="text-xl font-bold">{stat.count}</p>
-                    </div>
-                    <span className={`${stat.color}`}>{stat.icon}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Order Statistics */}
-              <div>
-                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
-                  <div className="flex items-center mb-3 md:mb-0">
-                    <Package size={20} className="text-blue-500 mr-2" />
-                    <h2 className="text-lg font-semibold text-gray-700">Order Statistics</h2>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg text-sm shadow-sm hover:shadow-md transition-shadow duration-200">This Year</button>
-                    <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300 transition-colors duration-200">This Month</button>
-                    <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300 transition-colors duration-200">This Week</button>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Order Status Statistics</h3>
-                  <div className="h-64 w-full bg-gray-100 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500">Chart placeholder - Order status distribution</p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </main>
       </div>
     </div>

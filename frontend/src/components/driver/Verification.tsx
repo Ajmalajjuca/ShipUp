@@ -12,7 +12,6 @@ import { setEmailId } from '../../Redux/slices/driverSlice';
 const Verification = () => {
     const email = useSelector((state: RootState) => state.driver.email);
     const dispatch = useDispatch();
-    console.log('Email:', email);
     
     
     
@@ -35,10 +34,8 @@ const Verification = () => {
         const checkSessionAndFetchData = async () => {
             try {
                 const { token, partnerData } = sessionManager.getPartnerSession();
-                console.log('Session data:', { token: !!token, partnerData }); // Debug log
                 
                 if (!token || !partnerData) {
-                    console.log('No valid session found');
                     navigate('/partner');
                     return;
                 }
@@ -48,7 +45,6 @@ const Verification = () => {
                 }
 
                 try {
-                    console.log('Making request with token:', token); // Debug log
                     const response = await axios.get(
                         `http://localhost:3003/api/drivers/verify-doc?email=${partnerData.email}`,
                         {

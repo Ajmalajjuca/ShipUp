@@ -63,6 +63,7 @@ const PartnerRequestView: React.FC = () => {
       const response = await axios.get(`http://localhost:3003/api/drivers/${partnerId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       setPartner(response.data.partner);
     } catch (error) {
       console.error('Error fetching partner details:', error);
@@ -363,7 +364,7 @@ const DocumentsCard: React.FC<{
     path?: string;
     docType: string;
     isComplete: boolean;
-    verificationField?: string;
+    verificationField?: keyof PartnerDetails;
   }>;
   partner: PartnerDetails;
   onVerify: () => void;
@@ -390,7 +391,7 @@ const DocumentsCard: React.FC<{
                 View
               </button>
             )}
-            {doc.verificationField && !partner[doc.verificationField] && (
+            {doc.verificationField && !partner[doc.verificationField as keyof PartnerDetails] && (
               <button 
                 className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-sm hover:bg-green-100 transition-colors"
                 onClick={onVerify}

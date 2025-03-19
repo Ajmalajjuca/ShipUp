@@ -19,7 +19,11 @@ app.use(cors({
 app.use(express.json());
 
 // Serve static files from different upload directories
-app.use('/uploads/documents', express.static(path.join(__dirname, '../uploads/documents')));
+app.use('/uploads/documents/aadhar', express.static(path.join(__dirname, '../uploads/documents/aadhar')));
+app.use('/uploads/documents/pan', express.static(path.join(__dirname, '../uploads/documents/pan')));
+app.use('/uploads/documents/license', express.static(path.join(__dirname, '../uploads/documents/license')));
+app.use('/uploads/documents/insuranceDoc', express.static(path.join(__dirname, '../uploads/documents/insuranceDoc')));
+app.use('/uploads/documents/pollutionDoc', express.static(path.join(__dirname, '../uploads/documents/pollutionDoc')));
 app.use('/uploads/profile-images', express.static(path.join(__dirname, '../uploads/profile-images')));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 

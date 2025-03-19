@@ -43,7 +43,6 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         try {
         // Verify token locally first
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
-        console.log('decoded:', decoded);
           
             // Check if user is a driver
             if (decoded.role !== 'driver') {

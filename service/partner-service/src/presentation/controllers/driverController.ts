@@ -33,9 +33,16 @@ export const partnerController = {
       if (files) {
         Object.keys(files).forEach(fieldname => {
           if (files[fieldname] && files[fieldname][0]) {
-            // Store relative path from uploads directory
-            const relativePath = files[fieldname][0].path.split('uploads/')[1];
-            fileMap[fieldname] = relativePath;
+            // Store just the filename, not the full path
+            const filename = files[fieldname][0].filename;
+            
+            // Map the field names to the database field names
+            if (fieldname === 'aadhar') fileMap['aadharPath'] = filename;
+            else if (fieldname === 'pan') fileMap['panPath'] = filename;
+            else if (fieldname === 'license') fileMap['licensePath'] = filename;
+            else if (fieldname === 'insuranceDoc') fileMap['insuranceDocPath'] = filename;
+            else if (fieldname === 'pollutionDoc') fileMap['pollutionDocPath'] = filename;
+            else if (fieldname === 'profilePicture') fileMap['profilePicturePath'] = filename;
           }
         });
       }
@@ -87,12 +94,8 @@ export const partnerController = {
           accountNumber,
           ifscCode,
           upiId,
-          aadharPath: fileMap['aadhar'],
-          panPath: fileMap['pan'],
-          licensePath: fileMap['license'],
-          insuranceDocPath: fileMap['insuranceDoc'],
-          pollutionDocPath: fileMap['pollutionDoc'],
-          profilePicturePath: fileMap['profilePicture'],
+          // Use the mapped field names
+          ...fileMap
         });
 
         if (!result.success) {
@@ -134,7 +137,6 @@ export const partnerController = {
   async verifyDoc(req: Request, res: Response) {
     try {
       const { email } = req.query;
-      console.log('email::',email);
       
 
       if (!email || typeof email !== 'string') {
@@ -164,7 +166,6 @@ export const partnerController = {
         VehicleDetails: driver.vehicleDetailsCompleted
       };
 
-      console.log('verificationData::',verificationData);
       
 
       res.status(200).json({
@@ -280,11 +281,26 @@ export const partnerController = {
       const partnerWithUrls = {
         ...driver,
         profilePicturePath: driver.profilePicturePath 
-          ? `${process.env.API_URL}/uploads/${driver.profilePicturePath}`
+          ? driver.profilePicturePath
           : null,
-        // Add other document paths similarly
+        aadharPath: driver.aadharPath 
+          ? driver.aadharPath
+          : null,
+        panPath: driver.panPath 
+          ? driver.panPath
+          : null,
+        licensePath: driver.licensePath 
+          ? driver.licensePath
+          : null,
+        insuranceDocPath: driver.insuranceDocPath 
+          ? driver.insuranceDocPath
+          : null,
+        pollutionDocPath: driver.pollutionDocPath 
+          ? driver.pollutionDocPath
+          : null,
       };
-
+      
+      
       res.status(200).json({
         success: true,
         partner: partnerWithUrls

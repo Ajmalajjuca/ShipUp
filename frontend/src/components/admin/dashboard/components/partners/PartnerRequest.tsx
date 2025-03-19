@@ -35,7 +35,6 @@ const PartnerRequest: React.FC = () => {
       const response = await axios.get('http://localhost:3003/api/drivers', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('response', response.data.partners);
       
       
       // Filter partners that are not fully verified
@@ -80,7 +79,6 @@ const PartnerRequest: React.FC = () => {
     request.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     request.phone?.includes(searchTerm)
   );
-  console.log('filteredRequests', filteredRequests);
   
 
   if (loading) return <div className="text-center py-4">Loading...</div>;

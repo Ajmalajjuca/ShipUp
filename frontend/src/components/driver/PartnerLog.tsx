@@ -82,7 +82,6 @@ const PartnerLog: React.FC = () => {
           otp 
         });
 
-        console.log('Login response:', response.data); // Debug log
 
         if (response.data.success) {
           // Store email in Redux

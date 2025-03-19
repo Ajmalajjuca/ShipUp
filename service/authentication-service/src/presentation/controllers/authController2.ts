@@ -411,7 +411,6 @@ export const authController = {
   async verifyPartnerToken(req: Request, res: Response) {
     try {
       const authHeader = req.headers.authorization;
-      console.log('Auth header received:', authHeader); // Debug log
 
       if (!authHeader) {
         res.status(401).json({ valid: false, message: 'No token provided' });
@@ -425,13 +424,10 @@ export const authController = {
       }
 
       try {
-        console.log('Verifying token...'); // Debug log
         const decoded = await authService.verifyToken(token);
-        console.log('Decoded token:', decoded); // Debug log
 
         // Check if the user is a partner/driver
         const user = await authRepository.findByEmail(decoded.email);
-        console.log('Found user:', user); // Debug log
 
         if (!user) {
           res.status(401).json({ valid: false, message: 'User not found' });

@@ -105,7 +105,6 @@ const PartnerReg = () => {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            console.log('response::',response);
             
 
             if (response.data.status === "success") {

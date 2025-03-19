@@ -15,8 +15,6 @@ const FormContainer: React.FC<FormContainerProps> = ({
   children,
   onSubmit,
   footer,
-  showGoogleAuth = false,
-  onGoogleAuthClick,
 }) => {
   const navigate = useNavigate()
   return (
@@ -56,16 +54,7 @@ const FormContainer: React.FC<FormContainerProps> = ({
       <div className="w-full md:w-1/2 flex items-center justify-center px-4 relative z-10">
         <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md backdrop-blur-sm bg-opacity-95 max-h-screen">
           <h2 className="text-xl font-bold text-gray-800 text-center mb-4">{title}</h2>
-          {showGoogleAuth && (
-            <div className="flex justify-center space-x-4 mb-4">
-              <button
-                className="p-2 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors"
-                onClick={onGoogleAuthClick}
-              >
-                <img src="/google-icon.png" alt="Google" className="h-6 w-6" />
-              </button>
-            </div>
-          )}
+          
           {onSubmit ? (
             <form className="space-y-4" onSubmit={onSubmit}>
               {children}

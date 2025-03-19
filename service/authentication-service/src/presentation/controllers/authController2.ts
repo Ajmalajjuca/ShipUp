@@ -10,11 +10,18 @@ import { EmailService } from '../../application/services/emailService';
 import multer from 'multer';
 import bcrypt from 'bcrypt';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
+import { OAuth2Client } from "google-auth-library";
+import { client } from '../../server';
+import { GoogleAuthUser } from '../../domain/use-cases/googleAuthUser';
+import { UserService } from '../../application/services/userService';
 
 const authRepository = new AuthRepositoryImpl();
 const authService = new AuthService();
 const otpService = new OtpService();
 const emailService = new EmailService();
+const userService = new UserService();
+const googleAuthUser = new GoogleAuthUser(authRepository, authService, userService);
 
 const registerUser = new RegisterUser(authRepository, authService, otpService, emailService);
 const loginUser = new LoginUser(authRepository, authService);
@@ -456,5 +463,60 @@ export const authController = {
       res.status(500).json({ valid: false, message: 'Internal server error' });
     }
   },
+
+  async googleLogin(req: Request, res: Response) {
+    try {
+      const { credential } = req.body;
+      
+      if (!credential) {
+        res.status(400).json({ success: false, error: "Google token is required" });
+        return;
+      }
+
+
+      // Verify the Google token
+      try {
+        const ticket = await client.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        
+        if (!payload || !payload.email) {
+          res.status(400).json({ success: false, error: "Invalid token" });
+          return;
+        }
+
+        const result = await googleAuthUser.execute({
+          email: payload.email,
+          name: payload.name,
+          picture: payload.picture
+        });
+
+        if (!result.success) {
+          res.status(400).json(result);
+          return;
+        }
+
+        res.status(200).json(result);
+      } catch (verifyError: any) {
+        console.error('Token verification error:', {
+          error: verifyError.message,
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          stack: verifyError.stack
+        });
+        res.status(401).json({ 
+          success: false, 
+          error: "Token verification failed",
+          details: verifyError.message
+        });
+        return;
+      }
+    } catch (error: any) {
+      console.error('Google authentication error:', error);
+      res.status(400).json({ success: false, error: "Authentication failed" });
+    }
+  }
 
 };

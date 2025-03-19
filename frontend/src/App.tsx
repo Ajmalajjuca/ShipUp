@@ -21,6 +21,7 @@ import axios from 'axios';
 import { loginSuccess } from './Redux/slices/authSlice';
 import EditProfile from './components/user/Profile/ProfileComponents/EditProfile';
 import PartnerRequestView from './components/admin/dashboard/components/partners/PartnerRequestView';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -166,7 +167,7 @@ function App() {
   }
 
   return (
-    <>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
       <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<ShipUpHomepage />} />
@@ -200,7 +201,7 @@ function App() {
           element={<PrivateRoute><PartnerRequestView /></PrivateRoute>} 
         />
       </Routes>
-    </>
+    </GoogleOAuthProvider>
   );
 }
 

@@ -8,6 +8,7 @@ import FormContainer from '../../common/FormContainer';
 import { RootState } from '../../../Redux/store';
 import { toast } from 'react-hot-toast';
 import { sessionManager } from '../../../utils/sessionManager';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 interface FormData {
   fullName: string;
@@ -74,9 +75,38 @@ const RegistrationForm: React.FC = () => {
     }
   };
 
-  const handleGoogleAuth = () => {
-    // Implement Google Auth logic here
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      dispatch(loginStart());
+      
+      const response = await axios.post('http://localhost:3001/auth/google', {
+        credential: credentialResponse.credential
+      });
+
+
+      const { user, token } = response.data;
+      
+      if (user && token) {
+        sessionManager.setSession(user, token);
+        dispatch(loginSuccess(user));
+        toast.success('Successfully logged in with Google!');
+        navigate('/');
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error: any) {
+      console.error('Google auth error:', error.response || error);
+      dispatch(loginFailure(error.response?.data?.error || 'Google authentication failed'));
+      toast.error(error.response?.data?.error || 'Failed to login with Google');
+    }
   };
+
+  const handleGoogleError = () => {
+    toast.error('Google sign in was unsuccessful');
+    dispatch(loginFailure('Google sign in failed'));
+  };
+
+  
 
   const footer = (
     <div className="text-sm">
@@ -93,8 +123,7 @@ const RegistrationForm: React.FC = () => {
       title={initialStage === 'Sign up' ? 'Create an Account' : 'Sign In'}
       onSubmit={handleSubmit}
       footer={footer}
-      showGoogleAuth={true}
-      onGoogleAuthClick={handleGoogleAuth}
+      
     >
       {initialStage === 'Sign up' && (
         <>
@@ -155,6 +184,29 @@ const RegistrationForm: React.FC = () => {
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
+      </div>
+
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white text-gray-500">Or continue with</span>
+        </div>
+      </div>
+
+      <div className="mt-1 mb-4">
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="outline"
+            size="large"
+            width="100%"
+            text={initialStage === 'Sign up' ? 'signup_with' : 'signin_with'}
+            shape="rectangular"
+          />
+        </GoogleOAuthProvider>
       </div>
 
       <button

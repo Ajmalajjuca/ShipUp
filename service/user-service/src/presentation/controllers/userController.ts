@@ -23,8 +23,9 @@ export const userController = {
   async create(req: Request, res: Response) {
     try {
       const { userId, fullName, phone, email } = req.body;
+      
 
-      if (!userId || !fullName || !phone || !email) {
+      if (!userId || !fullName  || !email) {
         res.status(400).json({
           success: false,
           error: 'Missing required fields: userId, fullName, phone, and email are required'
@@ -32,10 +33,13 @@ export const userController = {
         return
       }
 
-      const phoneRegex = /^(?:\+91)?[6-9]\d{9}$/;
-      if (!phoneRegex.test(phone)) {
-        res.status(400).json({ success: false, error: 'Invalid phone number format' });
-        return
+      if(phone){
+
+        const phoneRegex = /^(?:\+91)?[6-9]\d{9}$/;
+        if (!phoneRegex.test(phone)) {
+          res.status(400).json({ success: false, error: 'Invalid phone number format' });
+          return
+        }
       }
 
       const result = await createUser.execute({ userId, fullName, phone, email });
@@ -51,6 +55,7 @@ export const userController = {
   async get(req: Request, res: Response) {
     try {
       const { userId } = req.params;
+      
       const user = await userRepository.findById(userId);
       
       if (!user) {

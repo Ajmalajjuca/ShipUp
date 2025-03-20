@@ -29,9 +29,7 @@ const ModernProfilePage: React.FC = () => {
     { id: 'support', label: 'Get Support', icon: <LifeBuoy size={20} /> },
   ];
   
-  const handleEditClick = () => {
-    navigate('/profile/edit');
-  };
+
 
   return (
     <div className="w-full md:w-2/3">

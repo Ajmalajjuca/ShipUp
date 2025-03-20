@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema<User>({
     type: Boolean,
     default: false
   },
+  status: {
+    type: Boolean,
+    default: true  // Users are active by default
+  },
   referralId: {
     type: String,
     unique: true,

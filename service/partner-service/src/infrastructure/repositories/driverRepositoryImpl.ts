@@ -21,6 +21,7 @@ interface PartnerDocument {
   personalDocumentsCompleted: boolean;
   vehicleDetailsCompleted: boolean;
   isActive: boolean;
+  status: boolean;
   totalOrders?: number;
   ongoingOrders?: number;
   canceledOrders?: number;
@@ -78,21 +79,18 @@ export class PartnerRepositoryImpl implements PartnerRepository {
 
   async findByIdAndUpdate(partnerId: string, updateData: Partial<PartnerDocument>) {
     try {
-      // Find and update the partner document using partnerId field instead of _id
       const updatedPartner = await DriverModel.findOneAndUpdate(
-        { partnerId: partnerId }, // Use partnerId field instead of _id
+        { partnerId: partnerId },
         { $set: updateData },
-        { new: true } // This option returns the updated document
+        { new: true }
       );
 
       if (!updatedPartner) {
         return null;
       }
 
-      // Transform the document to plain object
       const partnerData = updatedPartner.toObject();
 
-      // Add URLs for documents if they exist
       return {
         ...partnerData,
         profilePicturePath: partnerData.profilePicturePath 

@@ -50,7 +50,8 @@ const PartnerLog: React.FC = () => {
         if (error.response && error.response.status === 404) {
           setErrors({ email: "Email not found. This email is not registered as a delivery partner." });
         } else {
-          setErrors({ email: error.response?.data?.message || "Something went wrong. Please try again." });
+          
+          setErrors({ email: error.response?.data?.error || "Something went wrong. Please try again." });
         }
       } finally {
         setIsSubmitting(false);

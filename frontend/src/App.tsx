@@ -1,112 +1,13 @@
 // src/App.tsx
-import React, { JSX, useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Route, Routes, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import RegistrationForm from './components/user/Login/RegistrationForm';
-import ShipUpHomepage from './components/user/Landing/Homepage';
-import ShipUpApp from './components/user/Home/Home';
-import Profile from './components/user/Profile/Profile';
-import PasswordReset from './components/user/PasswordReset';
-import OTPVerification from './components/user/OTPVerification';
-import { restoreSession } from './Redux/services/authService';
-import { AppDispatch, RootState } from './Redux/store';
-import PartnerReg from './components/driver/PartnerReg';
-import PartnerLog from './components/driver/PartnerLog';
-import Verification from './components/driver/Verification';
-import AdminLoginPage from './components/admin/AdminLoginPage';
-import AdminDashboard from './components/admin/dashboard/AdminDashboard';
+import React, { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { AppDispatch } from './Redux/store';
 import { Toaster } from 'react-hot-toast';
 import { sessionManager } from './utils/sessionManager';
-import axios from 'axios';
 import { loginSuccess } from './Redux/slices/authSlice';
-import EditProfile from './components/user/Profile/ProfileComponents/EditProfile';
-import PartnerRequestView from './components/admin/dashboard/components/partners/PartnerRequestView';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-
-const PrivateRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
-  const { user } = useSelector((state: RootState) => state.auth);
-  const [isVerifying, setIsVerifying] = useState(true);
-  const [isValid, setIsValid] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const verifySession = async () => {
-      const isValidToken = await sessionManager.verifyToken();
-      setIsValid(isValidToken);
-      setIsVerifying(false);
-
-      if (isValidToken && location.pathname.startsWith('/admin') && user?.role !== 'admin') {
-        navigate('/admin');
-      }
-    };
-    verifySession();
-  }, []);
-
-  if (isVerifying) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-900"></div>
-      </div>
-    );
-  }
-
-  return isValid ? children : <Navigate to="/" state={{ from: location }} replace />;
-};
-
-const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
-  const [isVerifying, setIsVerifying] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const verifyPartnerSession = async () => {
-      try {
-        const isValid = await sessionManager.verifyPartnerToken();
-        setIsAuthenticated(isValid);
-        
-        if (!isValid) {
-          // If not valid, redirect to partner login
-          navigate('/partner', { replace: true });
-        }
-      } catch (error) {
-        console.error('Partner session verification failed:', error);
-        setIsAuthenticated(false);
-        navigate('/partner', { replace: true });
-      } finally {
-        setIsVerifying(false);
-      }
-    };
-
-    verifyPartnerSession();
-  }, [navigate]);
-
-  if (isVerifying) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-      </div>
-    );
-  }
-
-  return isAuthenticated ? children : null;
-};
-
-const AuthRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
-  const { user } = useSelector((state: RootState) => state.auth);
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      const from = location.state?.from?.pathname || '/home';
-      navigate(from, { replace: true });
-    }
-  }, [user, navigate, location]);
-
-  return !user ? children : null;
-};
+import AppRoutes from './routes/AppRoutes';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -169,38 +70,7 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
       <Toaster position="top-right" />
-      <Routes>
-        <Route path="/" element={<ShipUpHomepage />} />
-        <Route path="/login" element={<AuthRoute><RegistrationForm /></AuthRoute>} />
-        <Route path="/reset-password" element={<AuthRoute><PasswordReset /></AuthRoute>} />
-        <Route path="/otp-verification" element={<AuthRoute><OTPVerification /></AuthRoute>} />
-        
-        {/* Protected Routes */}
-        <Route path="/home" element={<PrivateRoute><ShipUpApp /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/profile/edit" element={
-          <PrivateRoute>
-            <EditProfile />
-          </PrivateRoute>
-        } />
-        
-        {/* Partner Routes */}
-        <Route path="/register" element={<PartnerReg />} />
-        <Route path="/partner" element={<PartnerLog />} />
-        <Route path="/partner/dashboard" element={
-          <PrivatePartnerRoute><Verification /></PrivatePartnerRoute>
-        } />
-        
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLoginPage />} />
-        <Route path="/admin/dashboard" element={
-          <PrivateRoute><AdminDashboard /></PrivateRoute>
-        } />
-        <Route 
-          path="/admin/dashboard/partner-requests/:partnerId" 
-          element={<PrivateRoute><PartnerRequestView /></PrivateRoute>} 
-        />
-      </Routes>
+      <AppRoutes />
     </GoogleOAuthProvider>
   );
 }

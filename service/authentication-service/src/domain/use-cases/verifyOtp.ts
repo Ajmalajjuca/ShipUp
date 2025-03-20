@@ -25,7 +25,6 @@ export class VerifyOtp {
           return { success: false, error: 'User not found' };
         }
 
-        // Update password in auth repository
         await this.authRepo.updatePassword(user.userId, newPassword);
         
         // Clear OTP after successful password reset

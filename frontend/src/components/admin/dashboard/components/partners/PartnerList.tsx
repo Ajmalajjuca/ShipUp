@@ -4,6 +4,7 @@ import axios from 'axios';
 import { sessionManager } from '../../../../../utils/sessionManager';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../../common/Pagination';
+import EditPartnerModal from './EditPartnerModal';
 
 interface Partner {
   partnerId: string;
@@ -29,6 +30,8 @@ const PartnerList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     fetchPartners();
@@ -42,12 +45,12 @@ const PartnerList: React.FC = () => {
       });
 
       // Filter only fully verified partners
-      const verifiedPartners = (response.data.partners || []).filter((partner: Partner) => 
-        partner.bankDetailsCompleted === true && 
-        partner.personalDocumentsCompleted === true && 
+      const verifiedPartners = (response.data.partners || []).filter((partner: Partner) =>
+        partner.bankDetailsCompleted === true &&
+        partner.personalDocumentsCompleted === true &&
         partner.vehicleDetailsCompleted === true
       );
-      
+
       setPartners(verifiedPartners);
       setLoading(false);
     } catch (err) {
@@ -60,16 +63,18 @@ const PartnerList: React.FC = () => {
   const handleStatusToggle = async (partnerId: string, currentStatus: boolean) => {
     try {
       const { token } = sessionManager.getSession();
-      await axios.put(
+      const response = await axios.put(
         `http://localhost:3003/api/drivers/${partnerId}/status`,
         { status: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      setPartners(partners.map(partner => 
-        partner.partnerId === partnerId ? {...partner, status: !currentStatus} : partner
-      ));
-      toast.success('Status updated successfully');
+
+      if (response.data.success) {
+        setPartners(partners.map(partner =>
+          partner.partnerId === partnerId ? { ...partner, status: !currentStatus } : partner
+        ));
+        toast.success('Status updated successfully');
+      }
     } catch (err) {
       console.error('Error updating partner status:', err);
       toast.error('Failed to update status');
@@ -84,7 +89,7 @@ const PartnerList: React.FC = () => {
       await axios.delete(`http://localhost:3003/api/drivers/${partnerId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setPartners(partners.filter(partner => partner.partnerId !== partnerId));
       toast.success('Partner deleted successfully');
     } catch (error) {
@@ -93,7 +98,35 @@ const PartnerList: React.FC = () => {
     }
   };
 
-  const filteredPartners = partners.filter(partner => 
+  const handleEdit = async (updatedPartner: Partial<Partner>) => {
+    if (!selectedPartner) return;
+
+    try {
+      const { token } = sessionManager.getSession();
+      await axios.put(
+        `http://localhost:3003/api/drivers/${selectedPartner.partnerId}`,
+        updatedPartner,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Update the partners list with the edited data
+      setPartners(partners.map(partner =>
+        partner.partnerId === selectedPartner.partnerId
+          ? { ...partner, ...updatedPartner }
+          : partner
+      ));
+
+      setIsEditModalOpen(false);
+      toast.success('Partner updated successfully');
+    } catch (error) {
+      console.error('Error updating partner:', error);
+      toast.error('Failed to update partner');
+    }
+  };
+
+  const filteredPartners = partners.filter(partner =>
     partner.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     partner.phone?.includes(searchTerm) ||
     partner.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -153,9 +186,9 @@ const PartnerList: React.FC = () => {
                 <td className="py-3 px-4">
                   <div className="flex items-center">
                     {partner.profileImage ? (
-                      <img 
-                        src={partner.profileImage} 
-                        alt={partner.fullName} 
+                      <img
+                        src={partner.profileImage}
+                        alt={partner.fullName}
                         className="w-8 h-8 rounded-full mr-2"
                       />
                     ) : (
@@ -185,37 +218,44 @@ const PartnerList: React.FC = () => {
                 <td className="py-3 px-4">{partner.availablePoints || 0}</td>
                 <td className="py-3 px-4">
                   <label className="flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={partner.status} 
+                    <input
+                      type="checkbox"
+                      checked={partner.status}
                       onChange={() => handleStatusToggle(partner.partnerId, partner.status)}
-                      className="hidden" 
+                      className="hidden"
                       title="Toggle partner status"
                     />
-                    <span 
-                      className={`w-10 h-5 flex items-center rounded-full p-1 ${
-                        partner.status ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                    >
-                      <span 
-                        className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                          partner.status ? 'translate-x-5' : 'translate-x-0'
+                    <span
+                      className={`w-10 h-5 flex items-center rounded-full p-1 ${partner.status ? 'bg-green-500' : 'bg-red-500'
                         }`}
+                    >
+                      <span
+                        className={`w-4 h-4 rounded-full bg-white transition-transform ${partner.status ? 'translate-x-5' : 'translate-x-0'
+                          }`}
                       ></span>
                     </span>
                   </label>
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex space-x-3">
-                    
-                    <button 
+                    <button
+                      className="text-blue-500 hover:text-blue-700 transition-colors"
+                      title="Edit user"
+                      onClick={() => {
+                        setSelectedPartner(partner);
+                        setIsEditModalOpen(true);
+                      }}
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
                       className="text-green-500 hover:text-green-700 transition-colors"
                       title="View details"
-                      onClick={() => {/* Add view handler */}}
+                      onClick={() => {/* Add view handler */ }}
                     >
                       <Eye size={18} />
                     </button>
-                    <button 
+                    <button
                       className="text-red-500 hover:text-red-700 transition-colors"
                       title="Delete partner"
                       onClick={() => handleDelete(partner.partnerId)}
@@ -236,6 +276,19 @@ const PartnerList: React.FC = () => {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={handlePageChange}
+        />
+      )}
+
+      {/* Add the EditPartnerModal */}
+      {selectedPartner && (
+        <EditPartnerModal
+          partner={selectedPartner}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedPartner(null);
+          }}
+          onSave={handleEdit}
         />
       )}
     </div>

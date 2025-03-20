@@ -71,4 +71,19 @@ export class UserRepositoryImpl implements UserRepository {
       throw new Error(`Failed to find users: ${error}`);
     }
   }
+
+  async findByIdAndUpdate(userId: string, updateData: Partial<User>): Promise<User | null> {
+    try {
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { userId },
+        { $set: updateData },
+        { new: true }
+      ).lean();
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return null;
+    }
+  }
 }

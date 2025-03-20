@@ -73,10 +73,17 @@ const EditProfile: React.FC = () => {
       if (formData.newPassword) {
         if (formData.newPassword !== formData.confirmPassword) {
           toast.error('New passwords do not match');
+          setLoading(false);
           return;
         }
         if (!formData.currentPassword) {
           toast.error('Current password is required to set new password');
+          setLoading(false);
+          return;
+        }
+        if (formData.newPassword.length < 6) {
+          toast.error('New password must be at least 6 characters long');
+          setLoading(false);
           return;
         }
       }
@@ -85,10 +92,13 @@ const EditProfile: React.FC = () => {
       const updateData = new FormData();
       updateData.append('fullName', formData.fullName);
       updateData.append('phone', formData.phone);
-      if (formData.currentPassword) {
+      
+      // Only include password fields if a password change is requested
+      if (formData.currentPassword && formData.newPassword) {
         updateData.append('currentPassword', formData.currentPassword);
         updateData.append('newPassword', formData.newPassword);
       }
+      
       if (newImageFile) {
         updateData.append('profileImage', newImageFile);
       }
@@ -111,12 +121,14 @@ const EditProfile: React.FC = () => {
           profileImage: response.data.user.profileImage
         };
         sessionManager.setSession(updatedUser, sessionManager.getSession().token!);
+        dispatch(loginSuccess(updatedUser));
         
         toast.success('Profile updated successfully');
         navigate('/profile');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      const errorMessage = error.response?.data?.message || 'Failed to update profile';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

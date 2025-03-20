@@ -42,4 +42,19 @@ export class AuthRepositoryImpl implements AuthRepository {
   async delete(userId: string): Promise<void> {
     await AuthModel.deleteOne({ userId });
   }
+
+  async updateEmail(userId: string, email: string): Promise<Auth | null> {
+    try {
+      const updatedUser = await AuthModel.findOneAndUpdate(
+        { userId },
+        { $set: { email } },
+        { new: true }
+      ).lean();
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating email:', error);
+      return null;
+    }
+  }
 }

@@ -24,4 +24,7 @@ router.put('/update-password', authController.updatePassword);
 
 router.post('/google', authController.googleLogin);
 
+// Add the new route for updating email
+router.put('/update-email/:partnerId', authController.updateEmail);
+
 export default router;

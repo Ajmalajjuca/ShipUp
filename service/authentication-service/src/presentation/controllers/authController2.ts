@@ -124,10 +124,25 @@ export const authController = {
           }
         );
 
+        
+        if (userResponse.data.user && !userResponse.data.user.status) {
+          
+          res.status(403).json({
+            
+            success: false,
+            
+            error: 'Your account has been blocked. Please contact admin for support.'
+            
+          });
+          
+          return;
+          
+        }
         const userData = {
           ...result.authUser,
           ...userResponse.data.user // This will include the profileImage URL
         };
+        
 
         res.status(200).json({
           success: true,
@@ -163,6 +178,25 @@ export const authController = {
       if (!authUser) {
         res.status(404).json({ success: false, error: 'Email not registered' });
         return;
+      }
+
+      try{
+        const driverResponse = await axios.get(
+          `${process.env.PARTNER_SERVICE_URL}/drivers/${authUser.userId}`,
+          
+        )
+        console.log('driverResponse::',driverResponse.data.partner.status);
+        
+        if (driverResponse.data.partner && !driverResponse.data.partner.status) {
+          res.status(403).json({
+            success: false,
+            error: 'Your account has been blocked. Please contact admin for support.'
+          });
+          return;
+        }
+      }
+      catch(error){
+        console.error('Error fetching driver details:', error);
       }
 
       if (authUser.role === 'user') {
@@ -217,7 +251,7 @@ export const authController = {
 
       // Generate token
       const token = authService.generateToken(partner.userId, email, 'driver');
-
+      
       res.status(200).json({
         success: true,
         message: "OTP verified successfully",
@@ -259,12 +293,13 @@ export const authController = {
   async verifyOtp(req: Request, res: Response) {
     try {
       const { email, otp, newPassword } = req.body;
+      const hashedPassword = newPassword ? await bcrypt.hash(newPassword, 10) : '';
       if (!email || !otp) {
         res.status(400).json({ success: false, error: 'Email and OTP are required' });
         return;
       }
 
-      const result = await verifyOtp.execute(email, otp, newPassword);
+      const result = await verifyOtp.execute(email, otp, hashedPassword);
       if (!result.success) {
         res.status(400).json(result);
         return;
@@ -403,12 +438,26 @@ export const authController = {
 
   async updatePassword(req: Request, res: Response) {
     try {
-      const { userId, newPassword } = req.body;
+      const { userId,currentPassword , newPassword } = req.body;
       
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await authRepository.updatePassword(userId, hashedPassword);
+
+      const user = await authRepository.findById(userId);
+      if (!user) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+      const isValid = await bcrypt.compare(currentPassword, user.password);
       
-      res.status(200).json({ success: true, message: 'Password updated successfully' });
+      if(isValid){
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await authRepository.updatePassword(userId, hashedPassword);
+        
+        res.status(200).json({ success: true, message: 'Password updated successfully' });
+      }else{
+        res.status(404).json({ success: false, message: 'Current password is wrong' });
+
+      }
     } catch (error) {
       console.error('Password update error:', error);
       res.status(500).json({ success: false, message: 'Failed to update password' });
@@ -517,6 +566,59 @@ export const authController = {
       console.error('Google authentication error:', error);
       res.status(400).json({ success: false, error: "Authentication failed" });
     }
-  }
+  },
+
+  async updateEmail(req: Request, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const { email } = req.body;
+
+      if (!email) {
+        res.status(400).json({
+          success: false,
+          error: 'Email is required'
+        });
+        return;
+      }
+
+      // Check if email is already in use by another user
+      const existingUser = await authRepository.findByEmail(email);
+      if (existingUser && existingUser.userId !== partnerId) {
+        res.status(400).json({
+          success: false,
+          error: 'Email is already in use by another user'
+        });
+        return;
+      }
+
+      // Update the email
+      const updatedUser = await authRepository.updateEmail(partnerId, email);
+      
+      if (!updatedUser) {
+        res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Email updated successfully',
+        user: {
+          userId: updatedUser.userId,
+          email: updatedUser.email,
+          role: updatedUser.role
+        }
+      });
+
+    } catch (error) {
+      console.error('Update email error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  },
 
 };

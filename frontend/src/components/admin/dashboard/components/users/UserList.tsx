@@ -156,18 +156,21 @@ const UserList: React.FC<UserListProps> = () => {
   const handleStatusToggle = async (userId: string, currentStatus: boolean) => {
     try {
       const { token } = sessionManager.getSession();
-      await axios.put(`http://localhost:3002/api/users/${userId}`, 
+      const response = await axios.put(
+        `http://localhost:3002/api/users/${userId}/status`,
         { status: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      // Update local state
-      setUsers(users.map(user => 
-        user.userId === userId ? {...user, status: !currentStatus} : user
-      ));
+
+      if (response.data.success) {
+        setUsers(users.map(user => 
+          user.userId === userId ? { ...user, status: !currentStatus } : user
+        ));
+        toast.success('Status updated successfully');
+      }
     } catch (err) {
       console.error('Error updating user status:', err);
-      alert('Failed to update user status');
+      toast.error('Failed to update status');
     }
   };
 

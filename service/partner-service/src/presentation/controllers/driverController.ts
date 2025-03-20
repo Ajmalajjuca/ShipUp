@@ -218,27 +218,37 @@ export const partnerController = {
       const { status } = req.body;
 
       if (typeof status !== 'boolean') {
-        res.status(400).json({ success: false, error: 'Status must be a boolean' });
+        res.status(400).json({
+          success: false,
+          error: 'Status must be a boolean value'
+        });
         return;
       }
 
-      const updatedDriver = await partnerRepository.update(partnerId, {
-        isActive: status
-      });
+      const updatedPartner = await partnerRepository.findByIdAndUpdate(
+        partnerId,
+        { status }
+      );
 
-      if (!updatedDriver) {
-        res.status(404).json({ success: false, error: 'Driver not found' });
+      if (!updatedPartner) {
+        res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
         return;
       }
 
       res.status(200).json({
         success: true,
-        message: 'Driver status updated successfully',
-        partner: updatedDriver
+        message: 'Partner status updated successfully',
+        partner: updatedPartner
       });
     } catch (error) {
-      console.error('Update driver status error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
+      console.error('Update partner status error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
     }
   },
   async delete(req: Request, res: Response) {
@@ -336,6 +346,109 @@ export const partnerController = {
     } catch (error) {
       console.error('Update verification status error:', error);
       res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  },
+  async update(req: Request, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const { fullName, email, phone } = req.body;
+
+      // Validate required fields
+      if (!fullName && !email && !phone) {
+        res.status(400).json({
+          success: false,
+          error: 'At least one field (fullName, email, or phone) is required for update'
+        });
+        return;
+      }
+
+      // Create update object with only provided fields
+      const updateData: any = {};
+      if (fullName) updateData.fullName = fullName;
+      if (email) updateData.email = email;
+      if (phone) updateData.mobileNumber = phone; // Note: in DB it's mobileNumber
+
+      // Update partner
+      const updatedPartner = await partnerRepository.findByIdAndUpdate(partnerId, updateData);
+
+      if (!updatedPartner) {
+        res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
+        return;
+      }
+
+      // If email was updated, update it in auth service as well
+      if (email) {
+        try {
+          await axios.put(`${process.env.AUTH_SERVICE_URL}/auth/update-email/${partnerId}`, {
+            email: email
+          });
+        } catch (error) {
+          console.error('Failed to update email in auth service:', error);
+          // Consider whether to rollback the partner update or just log the error
+        }
+      }
+
+      // Return the updated partner
+      res.status(200).json({
+        success: true,
+        message: 'Partner updated successfully',
+        partner: {
+          partnerId: updatedPartner.partnerId,
+          fullName: updatedPartner.fullName,
+          email: updatedPartner.email,
+          phone: updatedPartner.mobileNumber,
+          status: updatedPartner.isActive,
+          profileImage: updatedPartner.profilePicturePath 
+            ? `${process.env.API_URL}/uploads/${updatedPartner.profilePicturePath}`
+            : null,
+          totalOrders: updatedPartner.totalOrders || 0,
+          completedOrders: updatedPartner.completedOrders || 0,
+          canceledOrders: updatedPartner.canceledOrders || 0,
+          bankDetailsCompleted: updatedPartner.bankDetailsCompleted,
+          personalDocumentsCompleted: updatedPartner.personalDocumentsCompleted,
+          vehicleDetailsCompleted: updatedPartner.vehicleDetailsCompleted
+        }
+      });
+
+    } catch (error) {
+      console.error('Update partner error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  },
+  async getByEmail(req: Request, res: Response) {
+    try {
+      const { email } = req.params;
+      
+      const partner = await partnerRepository.findByEmail(email);
+      
+      if (!partner) {
+        res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        partner: {
+          partnerId: partner.partnerId,
+          email: partner.email,
+          status: partner.status
+        }
+      });
+    } catch (error) {
+      console.error('Get partner by email error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
     }
   }
 };

@@ -29,6 +29,7 @@ const driverSchema = new Schema({
   // Status flags
   isActive: { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
+  status: { type: Boolean, default: true },
   bankDetailsCompleted: { type: Boolean, default: false },
   personalDocumentsCompleted: { type: Boolean, default: false },
   vehicleDetailsCompleted: { type: Boolean, default: false },

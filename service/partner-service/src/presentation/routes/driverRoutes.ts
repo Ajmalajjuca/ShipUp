@@ -72,7 +72,11 @@ router.get('/drivers/verify-doc', authMiddleware, partnerController.verifyDoc);
 router.get('/drivers', adminOnly, partnerController.getAll);
 router.put('/drivers/:partnerId/status', adminOnly, partnerController.updateStatus);
 router.delete('/drivers/:partnerId', adminOnly, partnerController.delete);
-router.get('/drivers/:partnerId', adminOnly, partnerController.getById);
+router.get('/drivers/:partnerId', partnerController.getById);
 router.put('/drivers/:partnerId/verification', adminOnly, partnerController.updateVerificationStatus);
+router.put('/drivers/:partnerId', adminOnly, partnerController.update);
+
+// Add this route
+router.get('/drivers/by-email/:email', partnerController.getByEmail);
 
 export default router;

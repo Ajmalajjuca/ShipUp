@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Edit2, Eye, Trash2 } from 'lucide-react';
-import axios from 'axios';
+import { driverService } from '../../../../../services/driver.service';
 import { sessionManager } from '../../../../../utils/sessionManager';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../../common/Pagination';
@@ -39,13 +39,10 @@ const PartnerList: React.FC = () => {
 
   const fetchPartners = async () => {
     try {
-      const { token } = sessionManager.getSession();
-      const response = await axios.get('http://localhost:3003/api/drivers', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await driverService.getAllDrivers();
 
       // Filter only fully verified partners
-      const verifiedPartners = (response.data.partners || []).filter((partner: Partner) =>
+      const verifiedPartners = (response.partners || []).filter((partner: Partner) =>
         partner.bankDetailsCompleted === true &&
         partner.personalDocumentsCompleted === true &&
         partner.vehicleDetailsCompleted === true
@@ -62,14 +59,9 @@ const PartnerList: React.FC = () => {
 
   const handleStatusToggle = async (partnerId: string, currentStatus: boolean) => {
     try {
-      const { token } = sessionManager.getSession();
-      const response = await axios.put(
-        `http://localhost:3003/api/drivers/${partnerId}/status`,
-        { status: !currentStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await driverService.updateDriverStatus(partnerId, !currentStatus);
 
-      if (response.data.success) {
+      if (response.success) {
         setPartners(partners.map(partner =>
           partner.partnerId === partnerId ? { ...partner, status: !currentStatus } : partner
         ));
@@ -85,11 +77,7 @@ const PartnerList: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this partner?')) return;
 
     try {
-      const { token } = sessionManager.getSession();
-      await axios.delete(`http://localhost:3003/api/drivers/${partnerId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      await driverService.deleteDriver(partnerId);
       setPartners(partners.filter(partner => partner.partnerId !== partnerId));
       toast.success('Partner deleted successfully');
     } catch (error) {
@@ -102,19 +90,11 @@ const PartnerList: React.FC = () => {
     if (!selectedPartner) return;
 
     try {
-      const { token } = sessionManager.getSession();
-      await axios.put(
-        `http://localhost:3003/api/drivers/${selectedPartner.partnerId}`,
-        updatedPartner,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      // Update the partners list with the edited data
+      const response = await driverService.updateDriver(selectedPartner.partnerId, updatedPartner);
+      
       setPartners(partners.map(partner =>
         partner.partnerId === selectedPartner.partnerId
-          ? { ...partner, ...updatedPartner }
+          ? { ...partner, ...response.partner }
           : partner
       ));
 

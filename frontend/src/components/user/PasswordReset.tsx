@@ -1,10 +1,10 @@
 // src/components/PasswordReset.tsx
 import React, { useState, ChangeEvent, FormEvent } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import FormContainer from '../common/FormContainer';
 import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { authService } from '../../services/auth.service';
 
 const PasswordReset: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -23,30 +23,16 @@ const PasswordReset: React.FC = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('Passwords do not match!', {
-        style: {
-          borderRadius: '10px',
-          background: '#333',
-          color: '#fff',
-        },
-      });
+      toast.error('Passwords do not match!');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await axios.post('http://localhost:3001/auth/forgot-password', {
-        email: formData.email
-      });
+      const response = await authService.forgotPassword(formData.email);
       
-      if (response.data.success) {
-        toast.success('OTP sent successfully!', {
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
-        });
+      if (response.success) {
+        toast.success('OTP sent successfully!');
         navigate('/otp-verification', { 
           state: { 
             email: formData.email,
@@ -57,13 +43,7 @@ const PasswordReset: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Reset Error:', error);
-      toast.error(error.response?.data?.error || 'Something went wrong!', {
-        style: {
-          borderRadius: '10px',
-          background: '#333',
-          color: '#fff',
-        },
-      });
+      toast.error(error.response?.data?.error || 'Something went wrong!');
     } finally {
       setIsLoading(false);
     }

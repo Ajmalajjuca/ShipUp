@@ -1,10 +1,10 @@
 import React, { useState, useRef, KeyboardEvent, ChangeEvent, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import axios from 'axios';
 import FormContainer from '../common/FormContainer';
 import { loginSuccess } from '../../Redux/slices/authSlice';
 import toast from 'react-hot-toast';
+import { authService } from '../../services/auth.service';
 
 const OTPVerification: React.FC = () => {
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
@@ -71,13 +71,13 @@ const OTPVerification: React.FC = () => {
     try {
       // If this is password reset flow
       if (isPasswordReset && newPassword) {
-        const response = await axios.post('http://localhost:3001/auth/verify-otp', {
+        const response = await authService.verifyOtp({
           email,
           otp: otpValue,
           newPassword
         });
 
-        if (response.data.success) {
+        if (response.success) {
           toast.success('Password reset successful!');
           navigate('/login');
         }
@@ -85,9 +85,9 @@ const OTPVerification: React.FC = () => {
       }
 
       // Registration verification flow
-      const response = await axios.post('http://localhost:3001/auth/verify-otp', {
+      const response = await authService.verifyOtp({
         email,
-        otp: otpValue,
+        otp: otpValue
       });
       
       const tempToken = sessionStorage.getItem('tempToken');
@@ -100,7 +100,7 @@ const OTPVerification: React.FC = () => {
       }
 
       // After successful OTP verification, move temp data to permanent storage
-      const permanentToken = response.data.token || tempToken;
+      const permanentToken = response.token || tempToken;
       dispatch(loginSuccess({ user: pendingUser, token: permanentToken }));
       
       localStorage.setItem('authToken', permanentToken);
@@ -124,30 +124,15 @@ const OTPVerification: React.FC = () => {
     setResending(true);
     setError(null);
     try {
-      const response = await axios.post('http://localhost:3001/auth/send-otp', { email });
+      const response = await authService.resendOtp(email);
       
-      if (response.data.success) {
-        setCountdown(60); // Reset countdown
-        toast.success('OTP resent successfully!', {
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
-        });
-      } else {
-        throw new Error(response.data.message);
+      if (response.success) {
+        setCountdown(60);
+        toast.success('OTP resent successfully!');
       }
-      
     } catch (error: any) {
-      setError(error.response?.data?.message || error.message || 'Failed to resend OTP');
-      toast.error(error.response?.data?.message || error.message || 'Failed to resend OTP', {
-        style: {
-          borderRadius: '10px',
-          background: '#333',
-          color: '#fff',
-        },
-      });
+      setError(error.response?.data?.message || 'Failed to resend OTP');
+      toast.error(error.response?.data?.message || 'Failed to resend OTP');
     } finally {
       setResending(false);
     }
@@ -165,12 +150,16 @@ const OTPVerification: React.FC = () => {
               type="text"
               inputMode="numeric"
               maxLength={1}
-              ref={(el) => (inputRefs.current[index] = el)}
+              ref={(el) => {
+                inputRefs.current[index] = el;
+              }}
               value={digit}
               onChange={(e) => handleChange(e, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className="w-12 h-12 rounded-lg bg-gray-50 text-center text-xl font-bold border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               disabled={loading || resending}
+              aria-label={`OTP digit ${index + 1}`}
+              title={`Enter digit ${index + 1}`}
             />
           ))}
         </div>

@@ -2,11 +2,15 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 
 interface DriverState {
-    email: string | null;
+    email: string;
+    driverData: any | null;
+    token: string | null;
 }
 
 const initialState: DriverState = {
-    email: localStorage.getItem("driverEmail") || null,
+    email: '',
+    driverData: null,
+    token: null
 };
 
 const driverSlice = createSlice({
@@ -15,14 +19,18 @@ const driverSlice = createSlice({
     reducers: {
         setEmailId: (state, action: PayloadAction<string>) => {
             state.email = action.payload;
-            localStorage.setItem("driverEmail", action.payload);
         },
-        clearAuth: (state) => {
-            state.email = null;
-            localStorage.removeItem("driverEmail");
+        setDriverData: (state, action: PayloadAction<{ driverData: any; token: string }>) => {
+            state.driverData = action.payload.driverData;
+            state.token = action.payload.token;
         },
+        clearDriverData: (state) => {
+            state.driverData = null;
+            state.token = null;
+            state.email = '';
+        }
     },
 });
 
-export const { setEmailId, clearAuth } = driverSlice.actions;
+export const { setEmailId, setDriverData, clearDriverData } = driverSlice.actions;
 export default driverSlice.reducer;

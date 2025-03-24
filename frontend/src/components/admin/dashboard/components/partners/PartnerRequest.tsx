@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import axios from 'axios';
 import { sessionManager } from '../../../../../utils/sessionManager';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { driverService } from '../../../../../services/driver.service';
 
 interface PartnerRequest {
   partnerId: string;
@@ -31,14 +31,10 @@ const PartnerRequest: React.FC = () => {
 
   const fetchRequests = async () => {
     try {
-      const { token } = sessionManager.getSession();
-      const response = await axios.get('http://localhost:3003/api/drivers', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const response = await driverService.getAllDrivers();
       
       // Filter partners that are not fully verified
-      const pendingPartners = (response.data.partners || []).filter((partner: PartnerRequest) => 
+      const pendingPartners = (response.partners || []).filter((partner: PartnerRequest) => 
         !partner.bankDetailsCompleted || 
         !partner.personalDocumentsCompleted || 
         !partner.vehicleDetailsCompleted
@@ -56,11 +52,7 @@ const PartnerRequest: React.FC = () => {
   const handleDelete = async (partnerId: string) => {
     if (window.confirm('Are you sure you want to delete this partner request?')) {
       try {
-        const { token } = sessionManager.getSession();
-        await axios.delete(`http://localhost:3003/api/drivers/${partnerId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
+        await driverService.deleteDriver(partnerId);
         setRequests(requests.filter(request => request.partnerId !== partnerId));
         toast.success('Partner request deleted successfully');
       } catch (error) {
@@ -79,7 +71,6 @@ const PartnerRequest: React.FC = () => {
     request.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     request.phone?.includes(searchTerm)
   );
-  
 
   if (loading) return <div className="text-center py-4">Loading...</div>;
   if (error) return <div className="text-center text-red-500 py-4">{error}</div>;
@@ -97,6 +88,7 @@ const PartnerRequest: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="py-2 pl-10 pr-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+            aria-label="Search partners"
           />
           <Search size={18} className="absolute top-2.5 left-3 text-gray-400" />
         </div>
@@ -163,11 +155,11 @@ const PartnerRequest: React.FC = () => {
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex space-x-3">
-                    
                     <button 
                       className="text-green-500 hover:text-green-700"
                       title="View details"
                       onClick={() => handleView(request.partnerId)}
+                      aria-label={`View details for ${request.fullName}`}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -178,6 +170,7 @@ const PartnerRequest: React.FC = () => {
                       className="text-red-500 hover:text-red-700"
                       title="Delete partner"
                       onClick={() => handleDelete(request.partnerId)}
+                      aria-label={`Delete ${request.fullName}`}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

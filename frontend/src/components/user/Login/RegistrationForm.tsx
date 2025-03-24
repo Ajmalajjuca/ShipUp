@@ -1,6 +1,5 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../../../Redux/slices/authSlice';
@@ -9,6 +8,7 @@ import { RootState } from '../../../Redux/store';
 import { toast } from 'react-hot-toast';
 import { sessionManager } from '../../../utils/sessionManager';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { authService } from '../../../services/auth.service';
 
 interface FormData {
   fullName: string;
@@ -195,19 +195,16 @@ const RegistrationForm: React.FC = () => {
     }
 
     setLoading(true);
-    // Remove confirmPassword from API request data
     const { confirmPassword, ...requestData } = formData;
     const dataToSend = { ...requestData, role: 'user' };
     
-    const endpoint = initialStage === 'Sign up'
-      ? 'http://localhost:3001/auth/register'
-      : 'http://localhost:3001/auth/login';
-
     try {
       dispatch(loginStart());
-      const response = await axios.post(endpoint, dataToSend);
+      const response = await (initialStage === 'Sign up' 
+        ? authService.register(dataToSend)
+        : authService.login(dataToSend));
 
-      const { user, token } = response.data;
+      const { user, token } = response;
 
       if (initialStage === 'Sign up') {
         sessionManager.setTempSession(user, token);
@@ -227,23 +224,18 @@ const RegistrationForm: React.FC = () => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       dispatch(loginStart());
+      const response = await authService.googleAuth(credentialResponse.credential);
       
-      const response = await axios.post('http://localhost:3001/auth/google', {
-        credential: credentialResponse.credential
-      });
-
-      const { user, token } = response.data;
+      const { user, token } = response;
       
       if (user && token) {
         sessionManager.setSession(user, token);
         dispatch(loginSuccess(user));
         toast.success('Successfully logged in with Google!');
         navigate('/');
-      } else {
-        throw new Error('Invalid response from server');
       }
     } catch (error: any) {
-      console.error('Google auth error:', error.response || error);
+      console.error('Google auth error:', error);
       dispatch(loginFailure(error.response?.data?.error || 'Google authentication failed'));
       toast.error(error.response?.data?.error || 'Failed to login with Google');
     }

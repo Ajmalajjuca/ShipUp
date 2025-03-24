@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { sessionManager } from '../../../../../utils/sessionManager';
+import { driverService } from '../../../../../services/driver.service';
 import { 
   ArrowLeft, 
   CheckCircle, 
@@ -42,7 +41,7 @@ interface PartnerDetails {
 }
 
 interface VerificationField {
-  key: 'bankDetailsCompleted' | 'personalDocumentsCompleted' | 'vehicleDetailsCompleted';
+  key: keyof Pick<PartnerDetails, 'bankDetailsCompleted' | 'personalDocumentsCompleted' | 'vehicleDetailsCompleted'>;
   label: string;
 }
 
@@ -59,14 +58,11 @@ const PartnerRequestView: React.FC = () => {
 
   const fetchPartnerDetails = async () => {
     try {
-      const { token } = sessionManager.getSession();
-      const response = await axios.get(`http://localhost:3003/api/drivers/${partnerId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      setPartner(response.data.partner);
+      const response = await driverService.getDriverById(partnerId!);
+      setPartner(response.partner);
     } catch (error) {
       console.error('Error fetching partner details:', error);
+      toast.error('Failed to fetch partner details');
     } finally {
       setLoading(false);
     }
@@ -84,24 +80,16 @@ const PartnerRequestView: React.FC = () => {
     { key: 'vehicleDetailsCompleted', label: 'Vehicle Details' }
   ];
 
-  const handleVerification = async (field: VerificationField['key']) => {
+  const handleVerification = async (field: string) => {
     try {
-      const { token } = sessionManager.getSession();
-      const response = await axios.put(
-        `http://localhost:3003/api/drivers/${partnerId}/verification`,
-        {
-          [field]: true
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
-      setPartner(response.data.partner);
-      toast.success(`${field.split('Completed')[0]} verified successfully`);
+      const response = await driverService.verifyDocument(partnerId!, field);
+      if (response.success) {
+        setPartner(prev => prev ? { ...prev, [field]: true } : null);
+        toast.success('Verification updated successfully');
+      }
     } catch (error) {
-      console.error('Error updating verification status:', error);
-      toast.error('Failed to update verification status');
+      console.error('Error updating verification:', error);
+      toast.error('Failed to update verification');
     }
   };
 
@@ -301,7 +289,7 @@ const PartnerRequestView: React.FC = () => {
               <VerificationCard
                 key={field.key}
                 label={field.label}
-                isVerified={partner[field.key]}
+                isVerified={Boolean(partner[field.key])}
                 onVerify={() => handleVerification(field.key)}
               />
             ))}

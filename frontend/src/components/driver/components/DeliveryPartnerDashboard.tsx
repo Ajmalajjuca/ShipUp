@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Bell, User, Package, Home, HelpCircle, DollarSign, Info, ChevronRight, Map, Clock, Star, Calendar, Truck, LogOut } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { clearAuth } from '../../../Redux/slices/driverSlice';
+import { clearDriverData } from '../../../Redux/slices/driverSlice';
+
 
 // Types
 interface NavItemProps {
@@ -286,7 +287,7 @@ const DeliveryPartnerDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    dispatch(clearAuth()); // Clears email from Redux & localStorage
+    dispatch(clearDriverData()); // Clears email from Redux & localStorage
     navigate("/partner"); // Redirects to login page
   };
   const toggleOnline = () => {

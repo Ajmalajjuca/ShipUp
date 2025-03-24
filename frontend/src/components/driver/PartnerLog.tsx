@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { setEmailId } from "../../Redux/slices/driverSlice"; // Import Redux action
 import { useNavigate } from 'react-router-dom'
 import { sessionManager } from '../../utils/sessionManager';
+import { authService } from '../../services/auth.service';
 
 const PartnerLog: React.FC = () => {
   // State management
@@ -16,6 +17,28 @@ const PartnerLog: React.FC = () => {
   const navigate = useNavigate()
 
   const dispatch = useDispatch()
+
+  // Add useEffect to prevent back navigation after successful login
+  useEffect(() => {
+    // Check if user is already logged in
+    const { token } = sessionManager.getPartnerSession();
+    if (token) {
+      navigate('/partner/dashboard', { replace: true });
+    }
+
+    // Prevent back navigation
+    window.history.pushState(null, '', window.location.pathname);
+    const handlePopState = (event: PopStateEvent) => {
+      window.history.pushState(null, '', window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate]);
+
   // Handle email submission
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,36 +101,30 @@ const PartnerLog: React.FC = () => {
       setMessage("");
 
       try {
-        const response = await axios.post("http://localhost:3001/auth/verify-login-otp", { 
-          email, 
-          otp 
-        });
+        const response = await authService.verifyLoginOtp(email, otp);
 
-
-        if (response.data.success) {
-          // Store email in Redux
+        if (response.success) {
           dispatch(setEmailId(email));
 
-          // Set partner session with token and data
-          sessionManager.setPartnerSession(response.data.token, {
+          sessionManager.setPartnerSession(response.token, {
             email,
-            partnerId: response.data.partnerId,
+            partnerId: response.partnerId,
             role: 'driver'
           });
 
           setStep("success");
           setMessage("Login successful!");
 
-          // Add a small delay before navigation
-          setTimeout(() => {
-            navigate("/partner/dashboard");
-          }, 1500);
+          // Replace the current history entry instead of pushing a new one
+          navigate("/partner/dashboard", { replace: true });
         } else {
-          setErrors({ otp: response.data.message || "Invalid OTP" });
+          setErrors({ otp: response.message || "Invalid OTP" });
         }
       } catch (error: any) {
         console.error('Login error:', error.response?.data || error.message);
         setErrors({ otp: error.response?.data?.message || "Failed to verify OTP" });
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };

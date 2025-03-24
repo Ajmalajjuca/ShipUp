@@ -5,10 +5,10 @@ import { Eye, EyeOff, Upload, X, ArrowLeft } from 'lucide-react';
 import { RootState } from '../../../../Redux/store';
 import { loginSuccess } from '../../../../Redux/slices/authSlice';
 import { sessionManager } from '../../../../utils/sessionManager';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import ProfileCard from '../../../common/ProfileCard';
 import ProfileLayout from '../ProfileLayout';
+import { userService } from '../../../../services/user.service';
 
 interface EditProfileFormData {
   fullName: string;
@@ -73,56 +73,38 @@ const EditProfile: React.FC = () => {
       if (formData.newPassword) {
         if (formData.newPassword !== formData.confirmPassword) {
           toast.error('New passwords do not match');
-          setLoading(false);
           return;
         }
         if (!formData.currentPassword) {
           toast.error('Current password is required to set new password');
-          setLoading(false);
           return;
         }
         if (formData.newPassword.length < 6) {
           toast.error('New password must be at least 6 characters long');
-          setLoading(false);
           return;
         }
       }
 
-      // Create FormData for multipart/form-data
-      const updateData = new FormData();
-      updateData.append('fullName', formData.fullName);
-      updateData.append('phone', formData.phone);
-      
-      // Only include password fields if a password change is requested
+      const updateData: any = {
+        fullName: formData.fullName,
+        phone: formData.phone
+      };
+
       if (formData.currentPassword && formData.newPassword) {
-        updateData.append('currentPassword', formData.currentPassword);
-        updateData.append('newPassword', formData.newPassword);
+        updateData.currentPassword = formData.currentPassword;
+        updateData.newPassword = formData.newPassword;
       }
-      
+
       if (newImageFile) {
-        updateData.append('profileImage', newImageFile);
+        updateData.profileImage = newImageFile;
       }
 
-      const response = await axios.put(
-        'http://localhost:3002/api/update-profile',
-        updateData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${sessionManager.getSession().token}`,
-          },
-        }
-      );
+      const response = await userService.updateProfile(updateData);
 
-      if (response.data.success) {
-        const updatedUser = { 
-          ...user, 
-          ...response.data.user,
-          profileImage: response.data.user.profileImage
-        };
+      if (response.success) {
+        const updatedUser = { ...user, ...response.user };
         sessionManager.setSession(updatedUser, sessionManager.getSession().token!);
         dispatch(loginSuccess(updatedUser));
-        
         toast.success('Profile updated successfully');
         navigate('/profile');
       }
@@ -153,6 +135,8 @@ const EditProfile: React.FC = () => {
                       type="button"
                       onClick={removeImage}
                       className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      title="Remove profile picture"
+                      aria-label="Remove profile picture"
                     >
                       <X size={16} />
                     </button>
@@ -170,6 +154,8 @@ const EditProfile: React.FC = () => {
                 onChange={handleImageChange}
                 className="hidden"
                 accept="image/*"
+                title="Choose profile picture"
+                aria-label="Choose profile picture"
               />
 
               <button
@@ -193,6 +179,8 @@ const EditProfile: React.FC = () => {
                   value={formData.fullName}
                   onChange={handleChange}
                   className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your full name"
+                  title="Full name"
                 />
               </div>
 
@@ -206,6 +194,9 @@ const EditProfile: React.FC = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your phone number"
+                  title="Phone number"
+                  aria-label="Phone number"
                 />
               </div>
 
@@ -222,6 +213,9 @@ const EditProfile: React.FC = () => {
                     value={formData.currentPassword}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Enter your current password"
+                    title="Current password"
+                    aria-label="Current password"
                   />
                   <button
                     type="button"
@@ -242,6 +236,9 @@ const EditProfile: React.FC = () => {
                     value={formData.newPassword}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Enter new password"
+                    title="New password"
+                    aria-label="New password"
                   />
                   <button
                     type="button"
@@ -262,6 +259,9 @@ const EditProfile: React.FC = () => {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Confirm your new password"
+                    title="Confirm new password"
+                    aria-label="Confirm new password"
                   />
                   <button
                     type="button"

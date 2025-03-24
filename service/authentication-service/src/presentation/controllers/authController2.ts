@@ -466,50 +466,38 @@ export const authController = {
 
   async verifyPartnerToken(req: Request, res: Response) {
     try {
-      const authHeader = req.headers.authorization;
+      const token = req.headers.authorization?.split(' ')[1];
+      const { email } = req.body;
 
-      if (!authHeader) {
-        res.status(401).json({ valid: false, message: 'No token provided' });
-        return;
-      }
-
-      const token = authHeader.split(' ')[1];
-      if (!token) {
-        res.status(401).json({ valid: false, message: 'Invalid token format' });
-        return;
-      }
-
-      try {
-        const decoded = await authService.verifyToken(token);
-
-        // Check if the user is a partner/driver
-        const user = await authRepository.findByEmail(decoded.email);
-
-        if (!user) {
-          res.status(401).json({ valid: false, message: 'User not found' });
-          return;
-        }
-
-        if (user.role !== 'driver') {
-          res.status(401).json({ valid: false, message: 'Not authorized as partner' });
-          return;
-        }
-
-        res.status(200).json({ 
-          valid: true, 
-          partner: {
-            userId: user.userId,
-            email: user.email,
-            role: user.role
-          }
+      if (!token || !email) {
+         res.status(401).json({
+          success: false,
+          message: 'No token or email provided'
         });
-      } catch (error) {
-        console.error('Token verification error:', error);
-        res.status(401).json({ valid: false, message: 'Invalid token' });
+        return
       }
+
+      // Verify the token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      
+      // Check if the token belongs to the partner
+      if (decoded.email !== email || decoded.role !== 'driver') {
+         res.status(401).json({
+          success: false,
+          message: 'Invalid token'
+        });
+        return
+      }
+
+      res.json({
+        success: true,
+        message: 'Token is valid'
+      });
     } catch (error) {
-      console.error('Partner token verification error:', error);
-      res.status(500).json({ valid: false, message: 'Internal server error' });
+      res.status(401).json({
+        success: false,
+        message: 'Invalid token'
+      });
     }
   },
 

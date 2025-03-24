@@ -1,6 +1,6 @@
 import { store } from '../Redux/store';
 import { loginSuccess, logout } from '../Redux/slices/authSlice';
-import { setEmailId, clearAuth } from '../Redux/slices/driverSlice';
+import { setEmailId, setDriverData, clearDriverData } from '../Redux/slices/driverSlice';
 
 export const sessionManager = {
   setSession(user: any, token: string) {
@@ -113,15 +113,12 @@ export const sessionManager = {
 
   clearDriverSession() {
     try {
-      // Clear all auth-related storage
       localStorage.removeItem('driverToken');
       localStorage.removeItem('driverData');
       sessionStorage.clear();
       
-      // Clear Redux state
       store.dispatch(clearDriverData());
       
-      // Clear any other auth-related data
       document.cookie.split(";").forEach(cookie => {
         document.cookie = cookie
           .replace(/^ +/, "")
@@ -143,40 +140,53 @@ export const sessionManager = {
     return token && user?.role === 'admin';
   },
 
-  setPartnerSession(token: string, partnerData: any) {
+  getPartnerSession: () => {
+    try {
+      const token = localStorage.getItem('partnerToken');
+      const partnerData = JSON.parse(localStorage.getItem('partnerData') || '{}');
+      return { token, partnerData };
+    } catch (error) {
+      console.error('Error getting partner session:', error);
+      return { token: null, partnerData: null };
+    }
+  },
+
+  setPartnerSession: (token: string, data: any) => {
     localStorage.setItem('partnerToken', token);
-    localStorage.setItem('partnerData', JSON.stringify(partnerData));
+    localStorage.setItem('partnerData', JSON.stringify(data));
   },
 
-  getPartnerSession() {
-    const token = localStorage.getItem('partnerToken');
-    const partnerData = JSON.parse(localStorage.getItem('partnerData') || 'null');
-    return { token, partnerData };
-  },
-
-  clearPartnerSession() {
+  clearPartnerSession: () => {
     localStorage.removeItem('partnerToken');
     localStorage.removeItem('partnerData');
   },
 
   async verifyPartnerToken() {
-    const { token } = this.getPartnerSession();
-    if (!token) return false;
+    const { token, partnerData } = this.getPartnerSession();
+    if (!token || !partnerData) return false;
 
     try {
       const response = await fetch('http://localhost:3001/auth/verify-partner-token', {
+        method: 'POST',
         headers: { 
-          Authorization: `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          email: partnerData.email,
+          role: 'driver'
+        })
       });
 
-      if (!response.ok) {
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        console.log('Token verification failed:', data.message);
         this.clearPartnerSession();
         return false;
       }
 
-      const data = await response.json();
-      return data.valid;
+      return true;
     } catch (error) {
       console.error('Partner token verification failed:', error);
       this.clearPartnerSession();

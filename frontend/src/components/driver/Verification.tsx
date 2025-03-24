@@ -1,4 +1,3 @@
-import axios from 'axios';
 import DocumentLayout from './components/DocumentLayout';
 import { DOCUMENT_STEPS } from './constants';
 import { useEffect, useState, useMemo } from 'react';
@@ -8,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import DeliveryPartnerDashboard from './components/DeliveryPartnerDashboard';
 import { sessionManager } from '../../utils/sessionManager';
 import { setEmailId } from '../../Redux/slices/driverSlice';
+import { driverService } from '../../services/driver.service';
 
 const Verification = () => {
     const email = useSelector((state: RootState) => state.driver.email);
@@ -45,25 +45,19 @@ const Verification = () => {
                 }
 
                 try {
-                    const response = await axios.get(
-                        `http://localhost:3003/api/drivers/verify-doc?email=${partnerData.email}`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${token}`
-                            }
-                        }
-                    );
+                    const response = await driverService.checkVerificationStatus(partnerData.email);
                     
-                    console.log('API Response:', response.data); // Debug log
-                    const data = response.data?.data || {};
-                    setVerificationData({
-                        BankDetails: data?.BankDetails || false,
-                        PersonalDocuments: data?.PersonalDocuments || false,
-                        VehicleDetails: data?.VehicleDetails || false
-                    });
+                    if (response.success) {
+                        const data = response.data || {};
+                        setVerificationData({
+                            BankDetails: data?.BankDetails || false,
+                            PersonalDocuments: data?.PersonalDocuments || false,
+                            VehicleDetails: data?.VehicleDetails || false
+                        });
+                    }
                 } catch (error: any) {
                     console.error('API Error:', error.response?.data || error.message);
-                    if (axios.isAxiosError(error) && error.response?.status === 401) {
+                    if (error.response?.status === 401) {
                         console.log('Clearing session due to auth error');
                         sessionManager.clearPartnerSession();
                         navigate('/partner');

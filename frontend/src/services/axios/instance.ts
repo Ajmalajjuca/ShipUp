@@ -60,8 +60,8 @@ console.log('error', error.response);
   if (error.response?.status === 401 && !originalRequest._retry) {
     originalRequest._retry = true;
     sessionManager.clearSession();
-    // window.location.href = '/login';
     toast.error('Session expired. Please login again.');
+    window.location.href = '/login';
   }
 
   return Promise.reject(error);

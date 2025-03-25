@@ -14,6 +14,7 @@ declare global {
         userId: string;
         email: string;
         role: string;
+        status?: boolean;  // Add status to the type
       };
     }
   }
@@ -44,15 +45,36 @@ export const authMiddleware = async (
         role: string;
       };
 
-      // Add user info to request object
-      req.user = decoded;
-
+      // Get user from database
       const user = await userRepository.findById(decoded.userId);
-      if (user && user.profileImage) {
+      
+      // Check if user exists and status is false
+      if (!user) {
+        res.status(401).json({ success: false, message: 'User not found' });
+        return;
+      }
+
+      // Check user status
+      if (user.status === false) {
+        res.status(401).json({ 
+          success: false, 
+          message: 'Your account has been blocked. Please contact admin for support.',
+          isDeactivated: true,
+          redirect: '/login'  // Add redirect path in response
+        });
+        return;
+      }
+
+      // Add user info to request object
+      if (user.profileImage) {
         // Add full URL for profile image
         user.profileImage = `${API_URL}/uploads/${user.profileImage}`;
       }
-      req.user = { ...decoded, ...user };
+      
+      req.user = { 
+        ...decoded, 
+        ...user 
+      };
 
       next();
     } catch (error) {

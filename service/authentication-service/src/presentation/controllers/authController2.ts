@@ -126,17 +126,11 @@ export const authController = {
 
         
         if (userResponse.data.user && !userResponse.data.user.status) {
-          
           res.status(403).json({
-            
             success: false,
-            
             error: 'Your account has been blocked. Please contact admin for support.'
-            
           });
-          
           return;
-          
         }
         const userData = {
           ...result.authUser,

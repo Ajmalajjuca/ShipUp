@@ -1,9 +1,12 @@
 // File: DeliveryPartnerDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { Bell, User, Package, Home, HelpCircle, DollarSign, Info, ChevronRight, Map, Clock, Star, Calendar, Truck, LogOut } from 'lucide-react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { clearDriverData } from '../../../Redux/slices/driverSlice';
+import { RootState } from '../../../Redux/store';
+import { partnerApi } from '../../../services/axios/instance';
+import { setDriverData } from '../../../Redux/slices/driverSlice';
+
 
 
 // Types
@@ -13,8 +16,6 @@ interface NavItemProps {
   active?: boolean;
   onClick: () => void;
 }
-
-
 
 // Navigation Item Component
 const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => (
@@ -282,14 +283,32 @@ const PerformanceCard: React.FC = () => (
 const DeliveryPartnerDashboard: React.FC = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [activeNav, setActiveNav] = useState('home');
-  const [isOpen, setIsOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const Email = useSelector((state: RootState) => state.driver.email);
+  const driver = useSelector((state: RootState) => state.driver);
+  
+  const fetchDriverDetails = async () => { 
+    try {
+      // Check if we already have driver data
+      if (!driver.driverData) {
+        const response = await partnerApi.get(`/api/drivers/by-email/${Email}`);
+        dispatch(setDriverData({ 
+          driverData: response.data.driver,
+          token: response.data.token
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching driver details:', error);
+    }
+  }
 
-  const handleLogout = () => {
-    dispatch(clearDriverData()); // Clears email from Redux & localStorage
-    navigate("/partner"); // Redirects to login page
-  };
+  useEffect(() => {
+    if (Email && !driver.driverData) {
+      fetchDriverDetails();
+    }
+  }, [Email, driver.driverData, dispatch]);
+
   const toggleOnline = () => {
     setIsOnline(!isOnline);
   };
@@ -316,24 +335,15 @@ const DeliveryPartnerDashboard: React.FC = () => {
       <div className="relative">
         <button
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-blue-600"
-          onClick={() => setIsOpen(!isOpen)}
         >
           <User size={18} />
-          <span className="font-medium">Profile</span>
+          <span className="font-medium"
+                        onClick={() => navigate('/partner/profile')}
+
+          >Profile</span>
         </button>
 
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <div className="absolute right-0 mt-2 w-36 bg-white shadow-md rounded-lg">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-4 py-2 text-red-600 hover:bg-gray-100 transition-colors"
-            >
-              <LogOut size={18} />
-              Logout
-            </button>
-          </div>
-        )}
+        
       </div>
     </div>
         </header>

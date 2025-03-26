@@ -4,6 +4,7 @@ import { authMiddleware, adminOnly } from '../middlewares/authMiddleware';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { upload } from '../../utils/s3Config';
 
 const router = express.Router();
 
@@ -44,7 +45,7 @@ const fileFilter = (req: any, file: any, cb: any) => {
   }
 };
 
-const upload = multer({ 
+const uploadMulter = multer({ 
   storage: storage,
   fileFilter: fileFilter,
   limits: {
@@ -54,7 +55,7 @@ const upload = multer({
 
 // Public routes
 router.post('/drivers', 
-  upload.fields([
+  uploadMulter.fields([
     { name: 'aadhar', maxCount: 1 },
     { name: 'pan', maxCount: 1 },
     { name: 'license', maxCount: 1 },
@@ -78,5 +79,15 @@ router.put('/drivers/:partnerId', adminOnly, partnerController.update);
 
 // Add this route
 router.get('/drivers/by-email/:email', partnerController.getByEmail);
+
+// Add these new routes for profile updates
+router.put('/drivers/:partnerId/personal', authMiddleware, partnerController.updatePersonalInfo);
+router.put('/drivers/:partnerId/vehicle', authMiddleware, partnerController.updateVehicleInfo);
+router.put('/drivers/:partnerId/bank', authMiddleware, partnerController.updateBankInfo);
+router.put('/drivers/:partnerId/profile-image', 
+  authMiddleware,
+  upload.single('profileImage'),
+  partnerController.updateProfileImage
+);
 
 export default router;

@@ -79,11 +79,13 @@ export class PartnerRepositoryImpl implements PartnerRepository {
 
   async findByIdAndUpdate(partnerId: string, updateData: Partial<PartnerDocument>) {
     try {
+      
       const updatedPartner = await DriverModel.findOneAndUpdate(
         { partnerId: partnerId },
         { $set: updateData },
         { new: true }
       );
+      
 
       if (!updatedPartner) {
         return null;

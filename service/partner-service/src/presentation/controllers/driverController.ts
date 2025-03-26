@@ -370,6 +370,8 @@ export const partnerController = {
 
       // Update partner
       const updatedPartner = await partnerRepository.findByIdAndUpdate(partnerId, updateData);
+      console.log('updatedPartner>>>',updatedPartner);
+      
 
       if (!updatedPartner) {
         res.status(404).json({
@@ -441,10 +443,202 @@ export const partnerController = {
           partnerId: partner.partnerId,
           email: partner.email,
           status: partner.status
-        }
+        },
+        driver:partner
       });
     } catch (error) {
       console.error('Get partner by email error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  },
+  async updatePersonalInfo(req: Request, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const { fullName, mobileNumber, address, dateOfBirth } = req.body;
+
+      // Validate required fields
+      if (!fullName || !mobileNumber || !address || !dateOfBirth) {
+         res.status(400).json({
+          success: false,
+          error: 'All personal information fields are required'
+        });
+        return
+      }
+
+      const updateData = {
+        fullName,
+        mobileNumber,
+        address,
+        dateOfBirth
+      };
+
+      const updatedPartner = await partnerRepository.findByIdAndUpdate(
+        partnerId,
+        updateData
+      );
+      console.log('updatedPartner',updatedPartner);
+      
+
+      if (!updatedPartner) {
+         res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
+        return
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Personal information updated successfully',
+        partner: updatedPartner
+      });
+
+    } catch (error) {
+      console.error('Update personal info error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  },
+  async updateVehicleInfo(req: Request, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const { vehicleType, registrationNumber } = req.body;
+
+      // Validate required fields
+      if (!vehicleType || !registrationNumber) {
+         res.status(400).json({
+          success: false,
+          error: 'All vehicle information fields are required'
+        });
+        return
+      }
+
+      const updateData = {
+        vehicleType,
+        registrationNumber
+      };
+
+      const updatedPartner = await partnerRepository.findByIdAndUpdate(
+        partnerId,
+        updateData
+      );
+
+      if (!updatedPartner) {
+         res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
+        return
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Vehicle information updated successfully',
+        partner: updatedPartner
+      });
+
+    } catch (error) {
+      console.error('Update vehicle info error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  },
+  async updateBankInfo(req: Request, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const { accountHolderName, accountNumber, ifscCode, upiId } = req.body;
+
+      // Validate required fields
+      if (!accountHolderName || !accountNumber || !ifscCode || !upiId) {
+         res.status(400).json({
+          success: false,
+          error: 'All bank information fields are required'
+        });
+        return
+      }
+
+      const updateData = {
+        accountHolderName,
+        accountNumber,
+        ifscCode,
+        upiId
+      };
+
+      const updatedPartner = await partnerRepository.findByIdAndUpdate(
+        partnerId,
+        updateData
+      );
+
+      if (!updatedPartner) {
+         res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
+        return
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Bank information updated successfully',
+        partner: updatedPartner
+      });
+
+    } catch (error) {
+      console.error('Update bank info error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  },
+  async updateProfileImage(req: Request, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const file = req.file as Express.MulterS3.File;
+
+      if (!file) {
+        res.status(400).json({
+          success: false,
+          error: 'No image file provided'
+        });
+        return;
+      }
+
+      const updateData = {
+        profilePicturePath: file.location // S3 returns the file URL in location
+      };
+
+      const updatedPartner = await partnerRepository.findByIdAndUpdate(
+        partnerId,
+        updateData
+      );
+
+      if (!updatedPartner) {
+        res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Profile image updated successfully',
+        partner: {
+          ...updatedPartner,
+          profilePicturePath: file.location
+        }
+      });
+
+    } catch (error) {
+      console.error('Update profile image error:', error);
       res.status(500).json({
         success: false,
         error: 'Internal server error'

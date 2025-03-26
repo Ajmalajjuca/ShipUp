@@ -16,6 +16,7 @@ import PartnerRequestView from '../components/admin/dashboard/components/partner
 import PrivateRoute from './PrivateRoute';
 import PrivatePartnerRoute from './PrivatePartnerRoute';
 import AuthRoute from './AuthRoute';
+import PartnerProfile from '../components/driver/components/PartnerProfile';
 
 const AppRoutes = () => {
   return (
@@ -33,6 +34,8 @@ const AppRoutes = () => {
       {/* Partner Routes */}
       <Route path="/register" element={<PartnerReg />} />
       <Route path="/partner" element={<PartnerLog />} />
+      <Route path="/partner/profile" element={<PartnerProfile />} />
+
       <Route path="/partner/dashboard" element={
         <PrivatePartnerRoute><Verification /></PrivatePartnerRoute>
       } />

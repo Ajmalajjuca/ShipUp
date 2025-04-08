@@ -57,7 +57,9 @@ export const driverService = {
   },
 
   updateDriverStatus: async (id: string, status: boolean) => {
+    console.log(`Calling API to update driver ${id} status to ${status}`);
     const response = await driverApi.put(`/api/drivers/${id}/status`, { status });
+    console.log('Status update response:', response.data);
     return response.data;
   },
 
@@ -112,8 +114,9 @@ export const driverService = {
     const formData = new FormData();
     
     Object.entries(data).forEach(([key, value]) => {
-      if (value instanceof File) {
-        formData.append(key, value);
+      if (value && typeof value === 'object' && 'name' in value && 'type' in value) {
+        // This is a file-like object
+        formData.append(key, value as any);
       } else if (value !== undefined) {
         formData.append(key, String(value));
       }

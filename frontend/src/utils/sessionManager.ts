@@ -59,6 +59,7 @@ export const sessionManager = {
 
     try {
       // First verify with auth service
+      console.log('Verifying token with auth service');
       const authResponse = await fetch('http://localhost:3001/auth/verify-token', {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -67,10 +68,18 @@ export const sessionManager = {
       });
       
       if (!authResponse.ok) {
+        console.log('Token verification failed with auth service');
+        if (authResponse.status === 401) {
+          // Token is invalid or expired
+          console.log('Token is invalid or expired, clearing session');
+          this.clearSession();
+          return false;
+        }
         return false;
       }
 
       // Then get latest user data from user service
+      console.log('Getting latest user data from user service');
       const userResponse = await fetch(`http://localhost:3002/api/users/${user.userId}`, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -78,20 +87,37 @@ export const sessionManager = {
         }
       });
 
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        if (userData.success) {
-          // Update session with latest user data
-          this.setSession({ ...user, ...userData.user }, token);
+      if (!userResponse.ok) {
+        console.log('Failed to get user data from user service', userResponse.status);
+        if (userResponse.status === 404) {
+          // User not found in user service, clear session
+          console.log('User not found, clearing session');
+          this.clearSession();
+          return false;
         }
+        if (userResponse.status === 401) {
+          // Token might be expired for the user service
+          console.log('Token unauthorized for user service, clearing session');
+          this.clearSession();
+          return false;
+        }
+        return false;
       }
 
-      return true;
+      const userData = await userResponse.json();
+      if (userData.success) {
+        console.log('Successfully verified token and got updated user data');
+        // Update session with latest user data
+        this.setSession({ ...user, ...userData.user }, token);
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.error('Token verification failed:', error);
+      this.clearSession();
       return false;
     }
-
   },
 
   logout() {

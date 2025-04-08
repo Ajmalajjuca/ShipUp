@@ -11,7 +11,7 @@ export const authApi = axios.create({
 });
 
 export const userApi = axios.create({
-  baseURL: 'http://localhost:3002',
+  baseURL: 'http://localhost:3002/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -55,9 +55,27 @@ const responseInterceptor = (response: any) => response;
 // Error interceptor
 const errorInterceptor = (error: any) => {
   const originalRequest = error.config;
-console.log('error', error.response);
+  console.log('Axios error interceptor:', { 
+    status: error.response?.status,
+    url: originalRequest?.url,
+    method: originalRequest?.method,
+    responseData: error.response?.data
+  });
 
-  if (error.response?.status === 401 && !originalRequest._retry) {
+  // Skip 400 errors for password issues - these should not trigger logouts
+  if (error.response?.status === 400 && 
+      error.response?.data?.passwordError === true) {
+    console.log('Password verification failed, not logging out');
+    return Promise.reject(error);
+  }
+
+  // Only clear session for authentication errors and if it's not a specific excluded route
+  // We're excluding update-profile completely since we handle that error separately
+  if (error.response?.status === 401 && 
+      !originalRequest._retry && 
+      !originalRequest.url.includes('verify-token') &&
+      !originalRequest.url.includes('update-profile')) {
+    console.log('Session expired, logging out');
     originalRequest._retry = true;
     sessionManager.clearSession();
     toast.error('Session expired. Please login again.');

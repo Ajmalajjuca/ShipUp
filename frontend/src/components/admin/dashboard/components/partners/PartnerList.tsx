@@ -59,17 +59,34 @@ const PartnerList: React.FC = () => {
 
   const handleStatusToggle = async (partnerId: string, currentStatus: boolean) => {
     try {
+      // Log the current status and the intended new status
+      console.log(`Toggling partner ${partnerId} status from ${currentStatus} to ${!currentStatus}`);
+      
+      // Call the API to update the status
       const response = await driverService.updateDriverStatus(partnerId, !currentStatus);
 
       if (response.success) {
-        setPartners(partners.map(partner =>
-          partner.partnerId === partnerId ? { ...partner, status: !currentStatus } : partner
-        ));
-        toast.success('Status updated successfully');
+        // Use the status field directly from the API response
+        const newStatus = response.partner.status;
+          
+        console.log(`Status updated from API: ${newStatus}`);
+        
+        // Update the partners array with the new status
+        setPartners(prevPartners => 
+          prevPartners.map(partner =>
+            partner.partnerId === partnerId 
+              ? { ...partner, status: newStatus } 
+              : partner
+          )
+        );
+        toast.success(`Partner ${newStatus ? 'activated' : 'deactivated'} successfully`);
+      } else {
+        // Show error toast if the API call was successful but status update failed
+        toast.error(response.message || 'Failed to update status');
       }
     } catch (err) {
       console.error('Error updating partner status:', err);
-      toast.error('Failed to update status');
+      toast.error('Failed to update status. Please try again.');
     }
   };
 

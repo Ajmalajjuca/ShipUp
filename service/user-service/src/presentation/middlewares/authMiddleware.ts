@@ -28,13 +28,23 @@ export const authMiddleware = async (
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      res.status(401).json({ success: false, message: 'No token provided' });
+      console.log('No token provided in request headers');
+      res.status(401).json({ 
+        success: false, 
+        message: 'No token provided',
+        error: 'missing_token'
+      });
       return;
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      res.status(401).json({ success: false, message: 'Invalid token format' });
+      console.log('Invalid token format in request headers');
+      res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token format',
+        error: 'invalid_token_format'
+      });
       return;
     }
 
@@ -50,17 +60,24 @@ export const authMiddleware = async (
       
       // Check if user exists and status is false
       if (!user) {
-        res.status(401).json({ success: false, message: 'User not found' });
+        console.log(`User not found with ID: ${decoded.userId}`);
+        res.status(401).json({ 
+          success: false, 
+          message: 'User not found', 
+          error: 'user_not_found'
+        });
         return;
       }
 
       // Check user status
       if (user.status === false) {
+        console.log(`User is blocked: ${decoded.userId}`);
         res.status(401).json({ 
           success: false, 
           message: 'Your account has been blocked. Please contact admin for support.',
           isDeactivated: true,
-          redirect: '/login'  // Add redirect path in response
+          redirect: '/login',
+          error: 'account_blocked'
         });
         return;
       }
@@ -77,8 +94,24 @@ export const authMiddleware = async (
       };
 
       next();
-    } catch (error) {
-      res.status(401).json({ success: false, message: 'Invalid token' });
+    } catch (error: any) {
+      console.log('JWT verification failed:', error.message);
+      let errorMessage = 'Invalid token';
+      let errorCode = 'invalid_token';
+      
+      if (error.name === 'TokenExpiredError') {
+        errorMessage = 'Token has expired';
+        errorCode = 'token_expired';
+      } else if (error.name === 'JsonWebTokenError') {
+        errorMessage = 'Invalid token';
+        errorCode = 'invalid_token';
+      }
+      
+      res.status(401).json({ 
+        success: false, 
+        message: errorMessage,
+        error: errorCode
+      });
       return;
     }
   } catch (error) {

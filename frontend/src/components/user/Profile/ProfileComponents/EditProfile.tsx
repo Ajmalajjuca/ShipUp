@@ -73,19 +73,23 @@ const EditProfile: React.FC = () => {
       if (formData.newPassword) {
         if (formData.newPassword !== formData.confirmPassword) {
           toast.error('New passwords do not match');
+          setLoading(false);
           return;
         }
         if (!formData.currentPassword) {
           toast.error('Current password is required to set new password');
+          setLoading(false);
           return;
         }
         if (formData.newPassword.length < 6) {
           toast.error('New password must be at least 6 characters long');
+          setLoading(false);
           return;
         }
       }
 
       const updateData: any = {
+        userId: user?.userId,
         fullName: formData.fullName,
         phone: formData.phone
       };
@@ -99,7 +103,20 @@ const EditProfile: React.FC = () => {
         updateData.profileImage = newImageFile;
       }
 
+      console.log('Submitting profile update with data:', {
+        ...updateData,
+        profileImage: newImageFile ? 'File included' : 'No file'
+      });
+
+      // First, try to verify and refresh the token
+      try {
+        await sessionManager.verifyToken();
+      } catch (refreshError) {
+        console.log("Token verification failed, proceeding with existing token");
+      }
+
       const response = await userService.updateProfile(updateData);
+      console.log('Profile update response:', response);
 
       if (response.success) {
         const updatedUser = { ...user, ...response.user };
@@ -107,10 +124,45 @@ const EditProfile: React.FC = () => {
         dispatch(loginSuccess(updatedUser));
         toast.success('Profile updated successfully');
         navigate('/profile');
+      } else {
+        // Only clear session if specifically instructed by the API
+        if (response.shouldClearSession === true) {
+          console.log('API requested session clearing, logging out');
+          sessionManager.clearSession();
+          navigate('/login');
+        } else {
+          toast.error(response.message || 'Failed to update profile');
+        }
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to update profile';
-      toast.error(errorMessage);
+      console.error('Profile update error:', error);
+      
+      // Handle password errors
+      if (error.response?.status === 400 && 
+          error.response?.data?.message?.toLowerCase().includes('password')) {
+        // This is likely a password validation error, not a session issue
+        toast.error(error.response.data.message || 'Current password is incorrect');
+        setLoading(false);
+        return;
+      }
+      
+      // Don't clear session for 401 errors on profile update
+      // This allows users to try again without being logged out
+      if (error.response?.status === 401 && error.config?.url?.includes('update-profile')) {
+        toast.error('Your session may have expired. Please try again or refresh the page.');
+      } else if (error.response?.status === 401) {
+        console.log('Unauthorized error (401), logging out');
+        sessionManager.clearSession();
+        navigate('/login');
+      } else if (error.response?.data?.shouldClearSession === true) {
+        console.log('API requested session clearing in error response, logging out');
+        sessionManager.clearSession();
+        navigate('/login');
+      } else {
+        // For other errors, don't clear session
+        const errorMessage = error.response?.data?.message || 'Failed to update profile';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

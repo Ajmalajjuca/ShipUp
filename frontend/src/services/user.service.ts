@@ -29,7 +29,7 @@ export const userService = {
       }
     });
 
-    const response = await userApi.put('/api/update-profile', formData, {
+    const response = await userApi.put('/update-profile', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -38,32 +38,32 @@ export const userService = {
   },
 
   getUserProfile: async () => {
-    const response = await userApi.get('/api/profile');
+    const response = await userApi.get('/profile');
     return response.data;
   },
 
   getAllUsers: async () => {
-    const response = await userApi.get('/api/users');
+    const response = await userApi.get('/users');
     return response.data;
   },
 
   getUserById: async (id: string) => {
-    const response = await userApi.get(`/api/users/${id}`);
+    const response = await userApi.get(`/users/${id}`);
     return response.data;
   },
 
   updateUserStatus: async (id: string, status: boolean) => {
-    const response = await userApi.put(`/api/users/${id}/status`, { status });
+    const response = await userApi.put(`/users/${id}/status`, { status });
     return response.data;
   },
 
   updateUser: async (id: string, data: Partial<User>) => {
-    const response = await userApi.put(`/api/users/${id}`, data);
+    const response = await userApi.put(`/users/${id}`, data);
     return response.data;
   },
 
   deleteUser: async (id: string) => {
-    const response = await userApi.delete(`/api/users/${id}`);
+    const response = await userApi.delete(`/users/${id}`);
     return response.data;
   }
 }; 

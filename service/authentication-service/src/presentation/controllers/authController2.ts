@@ -105,13 +105,21 @@ export const authController = {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
-        res.status(400).json({ success: false, error: 'Email and password are required' });
+        res.status(400).json({ 
+          success: false, 
+          error: 'Email and password are required',
+          passwordError: true
+        });
         return;
       }
 
       const result = await loginUser.execute(email, password);
       if (!result.success || !result.authUser || !result.token) {
-        res.status(401).json({ success: false, error: result.error || 'Login failed' });
+        res.status(401).json({ 
+          success: false, 
+          error: result.error || 'Invalid email or password',
+          passwordError: true
+        });
         return;
       }
 
@@ -128,7 +136,8 @@ export const authController = {
         if (userResponse.data.user && !userResponse.data.user.status) {
           res.status(403).json({
             success: false,
-            error: 'Your account has been blocked. Please contact admin for support.'
+            error: 'Your account has been blocked. Please contact admin for support.',
+            passwordError: false
           });
           return;
         }
@@ -155,7 +164,11 @@ export const authController = {
       }
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
+      res.status(500).json({ 
+        success: false, 
+        error: 'Internal server error',
+        passwordError: false
+      });
     }
   },
 
@@ -432,29 +445,42 @@ export const authController = {
 
   async updatePassword(req: Request, res: Response) {
     try {
-      const { userId,currentPassword , newPassword } = req.body;
+      const { userId, currentPassword, newPassword } = req.body;
       
 
       const user = await authRepository.findById(userId);
       if (!user) {
-        res.status(404).json({ success: false, message: 'User not found' });
+        res.status(404).json({ 
+          success: false, 
+          message: 'User not found',
+          passwordError: true
+        });
         return;
       }
       const isValid = await bcrypt.compare(currentPassword, user.password);
       
       if(isValid){
-
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await authRepository.updatePassword(userId, hashedPassword);
         
-        res.status(200).json({ success: true, message: 'Password updated successfully' });
-      }else{
-        res.status(404).json({ success: false, message: 'Current password is wrong' });
-
+        res.status(200).json({ 
+          success: true, 
+          message: 'Password updated successfully' 
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          message: 'Current password is incorrect',
+          passwordError: true
+        });
       }
     } catch (error) {
       console.error('Password update error:', error);
-      res.status(500).json({ success: false, message: 'Failed to update password' });
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update password',
+        passwordError: true
+      });
     }
   },
 

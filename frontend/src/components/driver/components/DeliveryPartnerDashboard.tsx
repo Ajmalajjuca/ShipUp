@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../../Redux/store';
 import { partnerApi } from '../../../services/axios/instance';
 import { setDriverData } from '../../../Redux/slices/driverSlice';
+import { sessionManager } from '../../../utils/sessionManager';
 
 
 
@@ -41,12 +42,9 @@ const OnlineStatusToggle: React.FC<{ isOnline: boolean; onToggle: () => void }> 
   // Animation for status indicator
   const [position, setPosition] = useState(isOnline ? 100 : 0);
 
-
   useEffect(() => {
     setPosition(isOnline ? 100 : 0);
   }, [isOnline]);
-
-
 
   return (
     <div className="flex flex-col items-center gap-4 mb-6">
@@ -65,7 +63,8 @@ const OnlineStatusToggle: React.FC<{ isOnline: boolean; onToggle: () => void }> 
           onClick={onToggle}
           className="relative inline-flex h-8 w-16 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border border-gray-200"
           style={{ backgroundColor: isOnline ? '#10b981' : '#e5e7eb' }}
-          aria-pressed={isOnline}
+          role="switch"
+          aria-checked={isOnline ? "true" : "false"}
           aria-label="Toggle online status"
         >
           <span 
@@ -208,45 +207,79 @@ const ActiveDeliveryCard: React.FC<{ visible: boolean }> = ({ visible }) => {
 };
 
 // Modern Avatar Component
-const DeliveryPersonAvatar: React.FC<{ rating: number }> = ({ rating }) => (
-  <div className="relative bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center">
+const DeliveryPersonAvatar: React.FC<{ 
+  rating: number,
+  driverData: any,
+  onClick: () => void
+}> = ({ rating, driverData, onClick }) => {
+  // Log data to help with debugging
+  console.log("Driver data in avatar:", driverData);
+  
+  // Extract profile image URL or default to null
+  const profileImage = driverData?.profilePicturePath || driverData?.profileImage || null;
+  console.log("Profile image URL:", profileImage);
+
+  return (
+  <div className="relative bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300" onClick={onClick}>
     <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100 flex items-center">
       <Star size={16} className="text-yellow-500 mr-1" />
       <span className="font-bold">{rating.toFixed(1)}</span>
     </div>
     
     <div className="mb-4">
-      <img 
-        src="/delivery-avatar.png" 
-        alt="Delivery Partner Avatar" 
-        className="h-48 w-auto"
-      />
+      {profileImage ? (
+        <img 
+          src={profileImage} 
+          alt="Delivery Partner Avatar" 
+          className="h-48 w-48 rounded-full object-cover border-2 border-blue-100"
+          onError={(e) => {
+            console.error("Error loading image:", profileImage);
+            // Fall back to the user icon if image fails to load
+            e.currentTarget.style.display = 'none';
+            const fallbackEl = e.currentTarget.parentElement!.querySelector('.fallback-avatar') as HTMLDivElement;
+            if (fallbackEl) {
+              fallbackEl.style.display = 'flex';
+            }
+          }}
+        />
+      ) : null}
+      
+      {/* Fallback avatar that will be shown if image doesn't exist or fails to load */}
+      <div 
+        className={`h-48 w-48 rounded-full bg-blue-100 flex items-center justify-center fallback-avatar ${profileImage ? 'hidden' : 'flex'}`}
+      >
+        <User size={64} className="text-blue-500" />
+      </div>
     </div>
     
     <div className="text-center">
-      <h3 className="font-bold text-xl mb-1">Alex Johnson</h3>
+      <h3 className="font-bold text-xl mb-1">{driverData?.fullName || 'Loading...'}</h3>
       <p className="text-gray-500 mb-4">Delivery Partner</p>
       
       <div className="grid grid-cols-2 gap-4 w-full">
         <div className="text-center p-3 bg-blue-50 rounded-xl">
           <p className="text-sm text-gray-500">Orders</p>
-          <p className="font-bold text-xl">126</p>
+          <p className="font-bold text-xl">{driverData?.totalOrders || 0}</p>
         </div>
         <div className="text-center p-3 bg-green-50 rounded-xl">
           <p className="text-sm text-gray-500">Completed</p>
-          <p className="font-bold text-xl">120</p>
+          <p className="font-bold text-xl">{driverData?.completedOrders || 0}</p>
         </div>
       </div>
     </div>
   </div>
-);
+)};
 
 // Performance Card
 const PerformanceCard: React.FC = () => (
   <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 mb-6">
     <div className="flex justify-between items-center mb-4">
       <h3 className="font-bold text-lg">Your Performance</h3>
-      <select className="bg-gray-100 border-0 rounded-lg text-sm p-2">
+      <select 
+        className="bg-gray-100 border-0 rounded-lg text-sm p-2"
+        aria-label="Performance time period"
+        title="Select time period"
+      >
         <option>This Week</option>
         <option>This Month</option>
         <option>Last Month</option>
@@ -288,14 +321,20 @@ const DeliveryPartnerDashboard: React.FC = () => {
   const Email = useSelector((state: RootState) => state.driver.email);
   const driver = useSelector((state: RootState) => state.driver);
   
+  useEffect(() => {
+    console.log("Current driver state:", driver);
+  }, [driver]);
+  
   const fetchDriverDetails = async () => { 
     try {
       // Check if we already have driver data
       if (!driver.driverData) {
+        console.log("Fetching driver details for email:", Email);
         const response = await partnerApi.get(`/api/drivers/by-email/${Email}`);
+        console.log("API response:", response.data);
         dispatch(setDriverData({ 
           driverData: response.data.driver,
-          token: response.data.token
+          token: response.data.token || driver.token
         }));
       }
     } catch (error) {
@@ -312,6 +351,26 @@ const DeliveryPartnerDashboard: React.FC = () => {
   const toggleOnline = () => {
     setIsOnline(!isOnline);
   };
+  
+  const handleLogout = () => {
+    // Clear the partner session
+    sessionManager.clearPartnerSession();
+    // Navigate to login page
+    navigate('/partner');
+  };
+  
+  const navigateToProfile = () => {
+    navigate('/partner/profile');
+  };
+
+  const scrollToTop = () => {
+    if (document.documentElement) {
+      document.documentElement.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -323,29 +382,38 @@ const DeliveryPartnerDashboard: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-      {/* Notification Bell */}
-      <div className="relative">
-        <button className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
-          <Bell size={20} className="text-gray-700" />
-        </button>
-        <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500"></span>
-      </div>
+            {/* Notification Bell */}
+            <div className="relative">
+              <button 
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                aria-label="Notifications"
+                title="View notifications"
+              >
+                <Bell size={20} className="text-gray-700" />
+              </button>
+              <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500"></span>
+            </div>
 
-      {/* Profile Button with Dropdown */}
-      <div className="relative">
-        <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-blue-600"
-        >
-          <User size={18} />
-          <span className="font-medium"
-                        onClick={() => navigate('/partner/profile')}
-
-          >Profile</span>
-        </button>
-
-        
-      </div>
-    </div>
+            {/* Profile Button */}
+            {/* <button
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors text-blue-600"
+              onClick={navigateToProfile}
+              title="View profile"
+            >
+              <User size={18} />
+              <span className="font-medium">Profile</span>
+            </button> */}
+            
+            {/* Logout Button */}
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors text-red-600"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              <LogOut size={18} />
+              <span className="font-medium">Logout</span>
+            </button>
+          </div>
         </header>
 
         <div className="flex gap-6">
@@ -387,6 +455,18 @@ const DeliveryPartnerDashboard: React.FC = () => {
                 label="About" 
                 active={activeNav === 'about'} 
                 onClick={() => setActiveNav('about')}
+              />
+              <NavItem 
+                icon={<User size={20} />} 
+                label="Profile" 
+                active={activeNav === 'profile'} 
+                onClick={() => navigate('/partner/profile')}
+              />
+              <NavItem 
+                icon={<LogOut size={20} />} 
+                label="Logout" 
+                active={false} 
+                onClick={handleLogout}
               />
             </nav>
             
@@ -444,7 +524,11 @@ const DeliveryPartnerDashboard: React.FC = () => {
               </div>
               
               <div className="lg:col-span-2">
-                <DeliveryPersonAvatar rating={4.8} />
+                <DeliveryPersonAvatar 
+                  rating={4.8} 
+                  driverData={driver.driverData}
+                  onClick={navigateToProfile}
+                />
               </div>
             </div>
           </main>

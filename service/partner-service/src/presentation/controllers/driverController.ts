@@ -215,9 +215,12 @@ export const partnerController = {
   async updateStatus(req: Request, res: Response) {
     try {
       const { partnerId } = req.params;
-      const { status } = req.body;
+      // Get the status from request body
+      const newStatus = req.body.status;
 
-      if (typeof status !== 'boolean') {
+      console.log(`Status update request for partner ${partnerId}:`, req.body);
+
+      if (newStatus === undefined || typeof newStatus !== 'boolean') {
         res.status(400).json({
           success: false,
           error: 'Status must be a boolean value'
@@ -225,9 +228,10 @@ export const partnerController = {
         return;
       }
 
+      // Use status field when updating the partner
       const updatedPartner = await partnerRepository.findByIdAndUpdate(
         partnerId,
-        { status }
+        { status: newStatus }
       );
 
       if (!updatedPartner) {
@@ -238,10 +242,14 @@ export const partnerController = {
         return;
       }
 
+      // Return the updated partner with status field
       res.status(200).json({
         success: true,
         message: 'Partner status updated successfully',
-        partner: updatedPartner
+        partner: {
+          ...updatedPartner,
+          status: updatedPartner.status
+        }
       });
     } catch (error) {
       console.error('Update partner status error:', error);

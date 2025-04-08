@@ -120,52 +120,99 @@ export const userController = {
 
   async updateProfile(req: Request, res: Response) {
     try {
-      const userId = req.user.userId;
+      console.log('Update profile request received:', { body: req.body, file: req.file });
+      
+      // Get userId from token if available or from request body
+      let userId;
+      if (req.user && req.user.userId) {
+        userId = req.user.userId;
+        console.log('Using userId from authenticated token:', userId);
+      } else if (req.body.userId) {
+        userId = req.body.userId;
+        console.log('Using userId from request body:', userId);
+      } else {
+        console.log('No userId provided in request');
+        res.status(400).json({
+          success: false,
+          message: 'User ID is required',
+          shouldClearSession: false
+        });
+        return;
+      }
+      
       const { fullName, phone, currentPassword, newPassword } = req.body;
+      
+      // Get auth token from headers
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        console.log('No authorization header provided');
+        res.status(401).json({
+          success: false,
+          message: 'Authorization header is required',
+          shouldClearSession: false
+        });
+        return;
+      }
       
       // If password change is requested, verify with auth service first
       if (currentPassword && newPassword) {
         try {
-          
-          const authResponse = await axios.put(`${AUTH_SERVICE_URL}auth/update-password`, {
+          console.log('Updating password via auth service');
+          const authResponse = await axios.put(`${AUTH_SERVICE_URL}/auth/update-password`, {
             userId,
             currentPassword,
             newPassword
           }, {
             headers: {
-              Authorization: req.headers.authorization
+              Authorization: authHeader
             }
           });
 
           const authData = authResponse.data as { success: boolean };
           if (!authData.success) {
-             res.status(400).json({
+            console.log('Password change failed from auth service');
+            res.status(400).json({
               success: false,
-              message: 'Password change failed'
+              message: 'Password change failed - current password may be incorrect',
+              passwordError: true,
+              shouldClearSession: false
             });
-            return
+            return;
           }
+          console.log('Password updated successfully');
         } catch (error: any) {
-           res.status(error.response?.status || 500).json({
+          console.error('Password update error from auth service:', error.response?.data || error.message);
+          // Use 400 status code for password errors to prevent automatic logout
+          res.status(400).json({
             success: false,
-            message: error.response?.data?.message || 'Password change failed'
+            message: error.response?.data?.message || 'Password change failed - current password may be incorrect',
+            passwordError: true,
+            shouldClearSession: false
           });
-          return
+          return;
         }
       }
 
       const profileImage = req.file;
-      
+      console.log('Profile image:', profileImage ? { filename: profileImage.filename, path: profileImage.path } : 'No image uploaded');
       
       // Get user from repository
       const user = await userRepository.findById(userId);
       if (!user) {
+        console.log('User not found in database:', userId);
         if (profileImage) {
           fs.unlinkSync(profileImage.path);
+          console.log('Deleted uploaded image due to user not found');
         }
-        res.status(404).json({ success: false, message: 'User not found' });
+        res.status(404).json({ 
+          success: false, 
+          message: 'User not found',
+          shouldClearSession: true // Indicate that session should be cleared
+        });
         return;
       }
+
+      console.log('Found user:', { userId: user.userId, email: user.email });
 
       // Delete old profile image if exists and new one is uploaded
       if (profileImage && user.profileImage) {
@@ -173,6 +220,9 @@ export const userController = {
         try {
           if (fs.existsSync(oldImagePath)) {
             fs.unlinkSync(oldImagePath);
+            console.log('Deleted old profile image:', oldImagePath);
+          } else {
+            console.log('Old profile image not found at path:', oldImagePath);
           }
         } catch (error) {
           console.error('Failed to delete old profile image:', error);
@@ -183,19 +233,32 @@ export const userController = {
       const updateData: any = {
         ...(fullName && { fullName }),
         ...(phone && { phone }),
-        ...(profileImage && { 
-          profileImage: `profile-images/${profileImage.filename}`
-        })
       };
+      
+      // Only add profileImage to updateData if a new image was uploaded
+      if (profileImage) {
+        // Ensure the directory exists
+        const profileImagesDir = path.join(__dirname, '../../../uploads/profile-images');
+        if (!fs.existsSync(profileImagesDir)) {
+          fs.mkdirSync(profileImagesDir, { recursive: true });
+          console.log('Created profile-images directory:', profileImagesDir);
+        }
+        
+        updateData.profileImage = `profile-images/${profileImage.filename}`;
+      }
+
+      console.log('Updating user with data:', updateData);
 
       // Update user
       const updatedUser = await userRepository.update(userId, updateData);
+      console.log('User updated successfully');
 
       // Create full URL for profile image
       const profileImageUrl = updatedUser.profileImage 
         ? `${API_URL}/uploads/${updatedUser.profileImage}`
         : null;
 
+      console.log('Sending successful response with updated user data');
       res.status(200).json({
         success: true,
         message: 'Profile updated successfully',
@@ -204,12 +267,21 @@ export const userController = {
           profileImage: profileImageUrl
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       if (req.file) {
-        fs.unlinkSync(req.file.path);
+        try {
+          fs.unlinkSync(req.file.path);
+          console.log('Deleted uploaded image due to error');
+        } catch (unlinkError) {
+          console.error('Error deleting file:', unlinkError);
+        }
       }
-      console.error('Update profile error:', error);
-      res.status(500).json({ success: false, message: 'Failed to update profile' });
+      console.error('Update profile error:', error.message, error.stack);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to update profile',
+        shouldClearSession: false // Don't clear session for server errors
+      });
     }
   },
 

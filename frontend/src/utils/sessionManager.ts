@@ -183,8 +183,26 @@ export const sessionManager = {
   },
 
   clearPartnerSession: () => {
-    localStorage.removeItem('partnerToken');
-    localStorage.removeItem('partnerData');
+    try {
+      // Clear partner-specific storage
+      localStorage.removeItem('partnerToken');
+      localStorage.removeItem('partnerData');
+      
+      // Clear any partner-related cookies
+      document.cookie.split(";").forEach(cookie => {
+        if (cookie.includes('partner') || cookie.includes('driver')) {
+          document.cookie = cookie
+            .replace(/^ +/, "")
+            .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+        }
+      });
+
+      // Clear Redux state for partner
+      store.dispatch(clearDriverData());
+    } catch (error) {
+      console.error('Error clearing partner session:', error);
+      throw error;
+    }
   },
 
   async verifyPartnerToken() {

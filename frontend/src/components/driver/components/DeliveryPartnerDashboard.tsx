@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../../Redux/store';
 import { partnerApi } from '../../../services/axios/instance';
-import { setDriverData } from '../../../Redux/slices/driverSlice';
+import { setDriverData, clearDriverData } from '../../../Redux/slices/driverSlice';
 import { sessionManager } from '../../../utils/sessionManager';
 
 
@@ -352,11 +352,32 @@ const DeliveryPartnerDashboard: React.FC = () => {
     setIsOnline(!isOnline);
   };
   
-  const handleLogout = () => {
-    // Clear the partner session
-    sessionManager.clearPartnerSession();
-    // Navigate to login page
-    navigate('/partner');
+  const handleLogout = async () => {
+    try {
+      // Clear the partner session
+      sessionManager.clearPartnerSession();
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach(cookie => {
+        document.cookie = cookie
+          .replace(/^ +/, "")
+          .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+      });
+
+      // Clear local storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Clear Redux state
+      dispatch(clearDriverData());
+
+      // Redirect to login page
+      navigate('/partner', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, still try to redirect
+      navigate('/partner', { replace: true });
+    }
   };
   
   const navigateToProfile = () => {

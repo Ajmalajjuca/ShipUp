@@ -32,6 +32,15 @@ interface PartnerDocument {
   licensePath?: string;
   insuranceDocPath?: string;
   pollutionDocPath?: string;
+  vehicleDocuments?: {
+    aadhar?: { frontUrl?: string; backUrl?: string };
+    pan?: { frontUrl?: string; backUrl?: string };
+    license?: { frontUrl?: string; backUrl?: string };
+    insurance?: { frontUrl?: string; backUrl?: string };
+    pollution?: { frontUrl?: string; backUrl?: string };
+    registration?: { frontUrl?: string; backUrl?: string };
+    permit?: { frontUrl?: string; backUrl?: string };
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -113,6 +122,7 @@ export class PartnerRepositoryImpl implements PartnerRepository {
         pollutionDocPath: partnerData.pollutionDocPath 
           ? `${process.env.API_URL}/uploads/documents/pollution/${partnerData.pollutionDocPath}`
           : null,
+        vehicleDocuments: partnerData.vehicleDocuments || null,
       };
     } catch (error) {
       console.error('Error in findByIdAndUpdate:', error);

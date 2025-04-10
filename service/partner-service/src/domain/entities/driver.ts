@@ -13,13 +13,24 @@ export interface Driver {
   upiId: string;
   status: boolean;
   
-  // Document paths
+  // Document paths (legacy format - maintained for backward compatibility)
   aadharPath?: string;
   panPath?: string;
   licensePath?: string;
   insuranceDocPath?: string;
   pollutionDocPath?: string;
   profilePicturePath?: string;
+
+  // Document URLs with front and back sides
+  vehicleDocuments?: {
+    aadhar?: { frontUrl?: string; backUrl?: string };
+    pan?: { frontUrl?: string; backUrl?: string };
+    license?: { frontUrl?: string; backUrl?: string };
+    insurance?: { frontUrl?: string; backUrl?: string };
+    pollution?: { frontUrl?: string; backUrl?: string };
+    registration?: { frontUrl?: string; backUrl?: string };
+    permit?: { frontUrl?: string; backUrl?: string };
+  };
 
   // Status flags
   isActive: boolean;
@@ -59,6 +70,15 @@ export const createDriver = (data: {
   insuranceDocPath?: string;
   pollutionDocPath?: string;
   profilePicturePath?: string;
+  vehicleDocuments?: {
+    aadhar?: { frontUrl?: string; backUrl?: string };
+    pan?: { frontUrl?: string; backUrl?: string };
+    license?: { frontUrl?: string; backUrl?: string };
+    insurance?: { frontUrl?: string; backUrl?: string };
+    pollution?: { frontUrl?: string; backUrl?: string };
+    registration?: { frontUrl?: string; backUrl?: string };
+    permit?: { frontUrl?: string; backUrl?: string };
+  };
 }): Driver => {
   return {
     status: true,

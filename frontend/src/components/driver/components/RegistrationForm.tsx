@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DriverRegistrationData } from '../types';
+import { s3Utils } from '../../../utils/s3Utils';
 
 interface RegistrationFormProps {
   initialData: Partial<DriverRegistrationData>;
@@ -9,6 +10,7 @@ interface RegistrationFormProps {
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData, onSubmit }) => {
   const [formData, setFormData] = useState<Partial<DriverRegistrationData>>(initialData);
   const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,7 +21,24 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, profilePicture: 'File size should be less than 5MB' }));
+        return;
+      }
+      
+      // Check file type (only images)
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, profilePicture: 'Please upload an image file' }));
+        return;
+      }
+      
       setProfileImage(file);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.profilePicture;
+        return newErrors;
+      });
     }
   };
 
@@ -34,10 +53,47 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit({ ...formData, profilePicture: profileImage });
+    if (!validateForm()) return;
+    
+    try {
+      setIsUploading(true);
+      let profilePictureUrl: string | undefined;
+      
+      // Upload profile picture to S3 if it exists
+      if (profileImage) {
+        console.log('Uploading profile picture to S3...', profileImage);
+        profilePictureUrl = await s3Utils.uploadImage(
+          profileImage, 
+          'shipup-driver-documents', 
+          true,    // isDriver 
+          true     // isTemporaryUpload
+        );
+        console.log('Profile picture uploaded successfully:', profilePictureUrl);
+      }
+      
+      // Submit form data with the profile picture URL
+      const dataToSubmit = {
+        ...initialData,
+        ...formData,
+        profilePicture: profileImage, // Keep the original file
+        profilePicturePath: profilePictureUrl, // Store the S3 URL
+        vehicleDocuments: initialData.vehicleDocuments
+      };
+      
+      console.log('Submitting data to parent with profilePicturePath:', profilePictureUrl);
+      console.log('Full form data:', dataToSubmit);
+      
+      onSubmit(dataToSubmit);
+    } catch (error: any) {
+      console.error('Error uploading profile picture:', error);
+      setErrors(prev => ({ 
+        ...prev, 
+        form: 'Failed to upload profile picture. Please try again.' 
+      }));
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -67,8 +123,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
             <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>
           )}
         </div>
-
-        
 
         <div>
           <label className="block text-xs text-gray-600 mb-1">Primary mobile number</label>
@@ -141,7 +195,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
           )}
         </div>
 
-        <div className="border border-gray-200 rounded-lg p-2 flex items-center justify-between">
+        <div className={`border border-gray-200 rounded-lg p-2 flex items-center justify-between ${errors.profilePicture ? 'border-red-500' : ''}`}>
           <div className="flex items-center space-x-2">
             {profileImage ? (
               <img
@@ -173,13 +227,23 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
             Upload Photo
           </label>
         </div>
+        {errors.profilePicture && (
+          <p className="text-xs text-red-500 mt-1">{errors.profilePicture}</p>
+        )}
+
+        {errors.form && (
+          <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-xs text-red-500">{errors.form}</p>
+          </div>
+        )}
 
         <button
           type="submit"
-          className="w-full bg-indigo-900 text-white py-2 px-4 rounded-lg hover:bg-indigo-800 transition-colors flex items-center justify-center mt-3 text-sm"
+          disabled={isUploading}
+          className={`w-full ${isUploading ? 'bg-gray-500' : 'bg-indigo-900 hover:bg-indigo-800'} text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center mt-3 text-sm`}
         >
-          NEXT
-          <span className="ml-2">→</span>
+          {isUploading ? 'Uploading...' : 'NEXT'}
+          {!isUploading && <span className="ml-2">→</span>}
         </button>
       </form>
     </div>

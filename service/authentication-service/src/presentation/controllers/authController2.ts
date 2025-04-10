@@ -50,7 +50,7 @@ export const authController = {
         success: true,
         message: result.message,
         token: authService.generateToken(result.userId || '', email, role),
-        user: { email, role, fullName, phone }
+        user: { email, role, fullName, phone, userId: result.userId }
       });
       return;
     } catch (error) {
@@ -485,8 +485,11 @@ export const authController = {
   },
 
   async verifyPartnerToken(req: Request, res: Response) {
+    const token = req.headers.authorization?.split(' ')[1];
+
     try {
-      const token = req.headers.authorization?.split(' ')[1];
+      
+      
       const { email } = req.body;
 
       if (!token || !email) {
@@ -626,6 +629,66 @@ export const authController = {
         success: false,
         error: 'Internal server error'
       });
+    }
+  },
+
+  // Create temporary token for document uploads
+  async createTempToken(req: Request, res: Response) {
+    try {
+      console.log('Received request:', {
+        body: req.body,
+        headers: req.headers
+      });
+
+      if (!req.body || Object.keys(req.body).length === 0) {
+        console.log('Empty request body received');
+         res.status(400).json({
+          success: false,
+          error: 'Request body is required'
+        });
+        return
+      }
+
+      const { purpose, role } = req.body;
+
+      if (!purpose || !role) {
+        console.log('Missing required fields:', { purpose, role });
+         res.status(400).json({
+          success: false,
+          error: 'Purpose and role are required'
+        });
+        return
+      }
+
+      if (purpose !== 'document-upload' || role !== 'driver') {
+        console.log('Invalid purpose or role:', { purpose, role });
+         res.status(400).json({
+          success: false,
+          error: 'Invalid purpose or role'
+        });
+        return
+      }
+
+      // Generate a short-lived token (5 minutes)
+      const token = jwt.sign(
+        { purpose, role },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '5m' }
+      );
+
+      console.log('Token generated successfully');
+       res.status(200).json({
+        success: true,
+        token
+      });
+      return
+    } catch (error) {
+      console.error('Error in createTempToken:', error);
+       res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+      return
     }
   },
 

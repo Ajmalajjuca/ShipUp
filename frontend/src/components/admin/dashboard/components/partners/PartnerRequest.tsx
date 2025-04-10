@@ -32,6 +32,8 @@ const PartnerRequest: React.FC = () => {
   const fetchRequests = async () => {
     try {
       const response = await driverService.getAllDrivers();
+      console.log('Fetched Partner Requests:', response);
+      
       
       // Filter partners that are not fully verified
       const pendingPartners = (response.partners || []).filter((partner: PartnerRequest) => 
@@ -71,6 +73,8 @@ const PartnerRequest: React.FC = () => {
     request.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     request.phone?.includes(searchTerm)
   );
+  console.log('Filtered Requests:', filteredRequests);
+  
 
   if (loading) return <div className="text-center py-4">Loading...</div>;
   if (error) return <div className="text-center text-red-500 py-4">{error}</div>;

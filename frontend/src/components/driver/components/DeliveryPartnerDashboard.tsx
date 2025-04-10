@@ -59,19 +59,35 @@ const OnlineStatusToggle: React.FC<{ isOnline: boolean; onToggle: () => void }> 
       </div>
       
       <div className="flex items-center">
-        <button 
-          onClick={onToggle}
-          className="relative inline-flex h-8 w-16 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border border-gray-200"
-          style={{ backgroundColor: isOnline ? '#10b981' : '#e5e7eb' }}
-          role="switch"
-          aria-checked={isOnline ? "true" : "false"}
-          aria-label="Toggle online status"
-        >
-          <span 
-            className="inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-300"
-            style={{ transform: `translateX(${position}%)` }}
-          />
-        </button>
+        {isOnline ? (
+          <button 
+            onClick={onToggle}
+            className="relative inline-flex h-8 w-16 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border border-gray-200"
+            style={{ backgroundColor: '#10b981' }}
+            role="switch" 
+            aria-checked="true"
+            aria-label="Toggle online status"
+          >
+            <span 
+              className="inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-300"
+              style={{ transform: `translateX(100%)` }}
+            />
+          </button>
+        ) : (
+          <button 
+            onClick={onToggle}
+            className="relative inline-flex h-8 w-16 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border border-gray-200"
+            style={{ backgroundColor: '#e5e7eb' }}
+            role="switch" 
+            aria-checked="false"
+            aria-label="Toggle online status"
+          >
+            <span 
+              className="inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-300"
+              style={{ transform: `translateX(0%)` }}
+            />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -287,7 +303,7 @@ const PerformanceCard: React.FC = () => (
     </div>
     
     <div className="flex items-center justify-between mb-2">
-      <span className="text-gray-600">On-time Delivery</span>
+      <span className="text-gray-600">On-time De  livery</span>
       <span className="font-medium">96%</span>
     </div>
     <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
@@ -343,10 +359,15 @@ const DeliveryPartnerDashboard: React.FC = () => {
   }
 
   useEffect(() => {
+    console.log("Driver data:", driver.driverData);
+    console.log("Driver email:", Email);
+    
     if (Email && !driver.driverData) {
+      console.log("Driver data not found, fetching...");
+      
       fetchDriverDetails();
     }
-  }, [Email, driver.driverData, dispatch]);
+  }, [Email, driver.driverData]);
 
   const toggleOnline = () => {
     setIsOnline(!isOnline);
@@ -355,7 +376,7 @@ const DeliveryPartnerDashboard: React.FC = () => {
   const handleLogout = async () => {
     try {
       // Clear the partner session
-      sessionManager.clearPartnerSession();
+      sessionManager.clearDriverSession();
       
       // Clear all cookies
       document.cookie.split(";").forEach(cookie => {

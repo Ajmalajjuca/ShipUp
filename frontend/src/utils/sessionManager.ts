@@ -1,6 +1,7 @@
 import { store } from '../Redux/store';
 import { loginSuccess, logout } from '../Redux/slices/authSlice';
 import { setEmailId, setDriverData, clearDriverData } from '../Redux/slices/driverSlice';
+import axios from 'axios';
 
 export const sessionManager = {
   setSession(user: any, token: string) {
@@ -55,60 +56,40 @@ export const sessionManager = {
 
   async verifyToken() {
     const { token, user } = this.getSession();
+    console.log('Verifying token:', { token, user });
+    
     if (!token || !user) return false;
 
     try {
       // First verify with auth service
       console.log('Verifying token with auth service');
-      const authResponse = await fetch('http://localhost:3001/auth/verify-token', {
+      const authResponse = await axios.get('http://localhost:3001/auth/verify-token', {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+      console.log('Auth response:', authResponse.data);
       
-      if (!authResponse.ok) {
+      if (!authResponse.data.valid) {
         console.log('Token verification failed with auth service');
-        if (authResponse.status === 401) {
-          // Token is invalid or expired
-          console.log('Token is invalid or expired, clearing session');
-          this.clearSession();
-          return false;
-        }
+        this.clearSession();
         return false;
       }
 
       // Then get latest user data from user service
       console.log('Getting latest user data from user service');
-      const userResponse = await fetch(`http://localhost:3002/api/users/${user.userId}`, {
+      const userResponse = await axios.get(`http://localhost:3002/api/users/${user.userId}`, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (!userResponse.ok) {
-        console.log('Failed to get user data from user service', userResponse.status);
-        if (userResponse.status === 404) {
-          // User not found in user service, clear session
-          console.log('User not found, clearing session');
-          this.clearSession();
-          return false;
-        }
-        if (userResponse.status === 401) {
-          // Token might be expired for the user service
-          console.log('Token unauthorized for user service, clearing session');
-          this.clearSession();
-          return false;
-        }
-        return false;
-      }
-
-      const userData = await userResponse.json();
-      if (userData.success) {
+      if (userResponse.data.success) {
         console.log('Successfully verified token and got updated user data');
         // Update session with latest user data
-        this.setSession({ ...user, ...userData.user }, token);
+        this.setSession({ ...user, ...userResponse.data.user }, token);
         return true;
       }
 
@@ -116,6 +97,58 @@ export const sessionManager = {
     } catch (error) {
       console.error('Token verification failed:', error);
       this.clearSession();
+      return false;
+    }
+  },
+
+  async verifyPartnerToken() {
+    const { token, driverData } = this.getDriverSession();
+    console.log('Verifying partner token:', { token, driverData });
+    
+    if (!token || !driverData) return false;
+
+    try {
+      console.log('Verifying partner token with auth service');
+      // Use the auth service's verify-partner-token endpoint
+      const authResponse = await axios.post('http://localhost:3001/auth/verify-partner-token', 
+        { email: driverData.email },
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!authResponse.data.success) {
+        console.log('Partner token verification failed');
+        this.clearDriverSession();
+        return false;
+      }
+
+      // Check the partner's data in the partner service
+      console.log('Getting latest partner data from partner service');
+      const partnerResponse = await axios.get(`http://localhost:3003/api/drivers/${driverData.partnerId}`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (partnerResponse.data.success) {
+        console.log('Successfully verified partner token and got updated data');
+        // Update driver session with latest data
+        this.setDriverSession(token, {
+          ...driverData,
+          ...partnerResponse.data.driver
+        });
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Partner token verification failed:', error);
+      this.clearDriverSession();
       return false;
     }
   },
@@ -128,7 +161,7 @@ export const sessionManager = {
   setDriverSession(token: string, driverData: any) {
     localStorage.setItem('driverToken', token);
     localStorage.setItem('driverData', JSON.stringify(driverData));
-    store.dispatch(setDriverData({ driverData, token }));
+    // store.dispatch(setDriverData({ driverData, token }));
   },
 
   getDriverSession() {
@@ -164,88 +197,8 @@ export const sessionManager = {
   isAdminAuthenticated() {
     const { token, user } = this.getSession();
     return token && user?.role === 'admin';
-  },
-
-  getPartnerSession: () => {
-    try {
-      const token = localStorage.getItem('partnerToken');
-      const partnerData = JSON.parse(localStorage.getItem('partnerData') || '{}');
-      return { token, partnerData };
-    } catch (error) {
-      console.error('Error getting partner session:', error);
-      return { token: null, partnerData: null };
-    }
-  },
-
-  setPartnerSession: (token: string, data: any) => {
-    localStorage.setItem('partnerToken', token);
-    localStorage.setItem('partnerData', JSON.stringify(data));
-  },
-
-  clearPartnerSession: () => {
-    try {
-      // Clear partner-specific storage
-      localStorage.removeItem('partnerToken');
-      localStorage.removeItem('partnerData');
-      
-      // Clear any partner-related cookies
-      document.cookie.split(";").forEach(cookie => {
-        if (cookie.includes('partner') || cookie.includes('driver')) {
-          document.cookie = cookie
-            .replace(/^ +/, "")
-            .replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
-        }
-      });
-
-      // Clear Redux state for partner
-      store.dispatch(clearDriverData());
-    } catch (error) {
-      console.error('Error clearing partner session:', error);
-      throw error;
-    }
-  },
-
-  async verifyPartnerToken() {
-    const { token, partnerData } = this.getPartnerSession();
-    if (!token || !partnerData) return false;
-
-    try {
-      const response = await fetch('http://localhost:3001/auth/verify-partner-token', {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          email: partnerData.email,
-          role: 'driver'
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        console.log('Token verification failed:', data.message);
-        this.clearPartnerSession();
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Partner token verification failed:', error);
-      this.clearPartnerSession();
-      return false;
-    }
-  },
-
-  isPartnerAuthenticated() {
-    const { token } = this.getPartnerSession();
-    return !!token;
   }
 };
-
-
-
 
 window.addEventListener('storage', (e) => {
   if (e.key === 'authToken' && !e.newValue) {

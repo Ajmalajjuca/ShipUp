@@ -33,19 +33,19 @@ const Verification = () => {
     useEffect(() => {
         const checkSessionAndFetchData = async () => {
             try {
-                const { token, partnerData } = sessionManager.getPartnerSession();
+                const { token, driverData } = sessionManager.getDriverSession();
                 
-                if (!token || !partnerData) {
+                if (!token || !driverData) {
                     navigate('/partner');
                     return;
                 }
 
-                if (!email && partnerData.email) {
-                    dispatch(setEmailId(partnerData.email));
+                if (!email && driverData.email) {
+                    dispatch(setEmailId(driverData.email));
                 }
 
                 try {
-                    const response = await driverService.checkVerificationStatus(partnerData.email);
+                    const response = await driverService.checkVerificationStatus(driverData.email);
                     
                     if (response.success) {
                         const data = response.data || {};
@@ -59,7 +59,7 @@ const Verification = () => {
                     console.error('API Error:', error.response?.data || error.message);
                     if (error.response?.status === 401) {
                         console.log('Clearing session due to auth error');
-                        sessionManager.clearPartnerSession();
+                        sessionManager.clearDriverSession();
                         navigate('/partner');
                     }
                 }

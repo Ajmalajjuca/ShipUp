@@ -35,7 +35,7 @@ export const partnerApi = axios.create({
 // Update the request interceptor to handle partner tokens
 const requestInterceptor = (config: any) => {
   // Check for partner session first
-  const partnerSession = sessionManager.getPartnerSession();
+  const partnerSession = sessionManager.getDriverSession();
   if (partnerSession.token) {
     config.headers.Authorization = `Bearer ${partnerSession.token}`;
     return config;
@@ -78,8 +78,8 @@ const errorInterceptor = (error: any) => {
     console.log('Session expired, logging out');
     originalRequest._retry = true;
     sessionManager.clearSession();
-    toast.error('Session expired. Please login again.');
-    window.location.href = '/login';
+    // toast.error('Session expired. Please login again.');
+    // window.location.href = '/login';
   }
 
   return Promise.reject(error);

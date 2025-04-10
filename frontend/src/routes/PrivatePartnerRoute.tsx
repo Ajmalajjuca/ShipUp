@@ -11,18 +11,18 @@ const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) 
   useEffect(() => {
     const verifyPartnerSession = async () => {
       try {
-        const { token, partnerData } = sessionManager.getPartnerSession();
+        const { token, driverData } = sessionManager.getDriverSession();
         
-        if (!token || !partnerData) {
+        if (!token || !driverData) {
           console.log('No partner session found');
           setIsAuthenticated(false);
           navigate('/partner', { replace: true });
           return;
         }
 
-        if (partnerData.role !== 'driver') {
+        if (driverData.role !== 'driver') {
           console.log('Invalid role');
-          sessionManager.clearPartnerSession();
+          sessionManager.clearDriverSession();
           toast.error('Invalid session. Please login again.');
           navigate('/partner', { replace: true });
           return;
@@ -32,7 +32,7 @@ const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) 
         
         if (!isValid) {
           console.log('Invalid partner token');
-          sessionManager.clearPartnerSession();
+          sessionManager.clearDriverSession();
           toast.error('Session expired. Please login again.');
           navigate('/partner', { replace: true });
           return;
@@ -43,7 +43,7 @@ const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) 
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Partner session verification failed:', error);
-        sessionManager.clearPartnerSession();
+        sessionManager.clearDriverSession();
         toast.error('Authentication failed. Please login again.');
         navigate('/partner', { replace: true });
       } finally {

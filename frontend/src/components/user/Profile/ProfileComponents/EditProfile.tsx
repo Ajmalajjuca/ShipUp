@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import ProfileCard from '../../../common/ProfileCard';
 import ProfileLayout from '../ProfileLayout';
 import { userService } from '../../../../services/user.service';
+import { s3Utils } from '../../../../utils/s3Utils';
 
 interface EditProfileFormData {
   fullName: string;
@@ -16,6 +17,7 @@ interface EditProfileFormData {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
+  profileImage?: string;
 }
 
 const EditProfile: React.FC = () => {
@@ -32,27 +34,68 @@ const EditProfile: React.FC = () => {
     confirm: false
   });
 
+  console.log('User data>>>:', user);
+  
+
   const [formData, setFormData] = useState<EditProfileFormData>({
     fullName: user?.fullName || '',
     phone: user?.phone || '',
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    profileImage: user?.profileImage || undefined
   });
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setNewImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setLoading(true);
+        
+        // Show preview immediately
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        
+        // Rename the file to include 'profile' in the name for proper detection
+        const profileFile = new File(
+          [file], 
+          `profile-${file.name}`, 
+          { type: file.type }
+        );
+        setNewImageFile(profileFile);
+        
+        // Upload to S3 with explicit profile type
+        console.log('Uploading profile image to S3...');
+        const imageUrl = await s3Utils.uploadImage(
+          profileFile, 
+          'shipup-user-profiles',
+          false,  // Not a driver upload
+          false   // Not a temporary upload
+        );
+        
+        console.log('Profile image uploaded successfully:', imageUrl);
+        
+        // Update the form data with the S3 URL
+        setFormData(prev => ({
+          ...prev,
+          profileImage: imageUrl
+        }));
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        toast.error('Failed to upload image. Please try again.');
+        // Reset the preview if upload fails
+        setImagePreview('');
+        setNewImageFile(null);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -99,14 +142,10 @@ const EditProfile: React.FC = () => {
         updateData.newPassword = formData.newPassword;
       }
 
-      if (newImageFile) {
-        updateData.profileImage = newImageFile;
+      // Add profile image if it was uploaded
+      if (formData.profileImage) {
+        updateData.profileImage = formData.profileImage;
       }
-
-      console.log('Submitting profile update with data:', {
-        ...updateData,
-        profileImage: newImageFile ? 'File included' : 'No file'
-      });
 
       // First, try to verify and refresh the token
       try {
@@ -125,7 +164,6 @@ const EditProfile: React.FC = () => {
         toast.success('Profile updated successfully');
         navigate('/profile');
       } else {
-        // Only clear session if specifically instructed by the API
         if (response.shouldClearSession === true) {
           console.log('API requested session clearing, logging out');
           sessionManager.clearSession();
@@ -137,31 +175,19 @@ const EditProfile: React.FC = () => {
     } catch (error: any) {
       console.error('Profile update error:', error);
       
-      // Handle password errors
       if (error.response?.status === 400 && 
           error.response?.data?.message?.toLowerCase().includes('password')) {
-        // This is likely a password validation error, not a session issue
         toast.error(error.response.data.message || 'Current password is incorrect');
-        setLoading(false);
-        return;
-      }
-      
-      // Don't clear session for 401 errors on profile update
-      // This allows users to try again without being logged out
-      if (error.response?.status === 401 && error.config?.url?.includes('update-profile')) {
+      } else if (error.response?.status === 401 && error.config?.url?.includes('update-profile')) {
         toast.error('Your session may have expired. Please try again or refresh the page.');
       } else if (error.response?.status === 401) {
-        console.log('Unauthorized error (401), logging out');
         sessionManager.clearSession();
         navigate('/login');
       } else if (error.response?.data?.shouldClearSession === true) {
-        console.log('API requested session clearing in error response, logging out');
         sessionManager.clearSession();
         navigate('/login');
       } else {
-        // For other errors, don't clear session
-        const errorMessage = error.response?.data?.message || 'Failed to update profile';
-        toast.error(errorMessage);
+        toast.error(error.response?.data?.message || 'Failed to update profile');
       }
     } finally {
       setLoading(false);

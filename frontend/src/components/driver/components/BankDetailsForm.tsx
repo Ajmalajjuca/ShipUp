@@ -8,7 +8,14 @@ interface BankDetailsFormProps {
 }
 
 export const BankDetailsForm: React.FC<BankDetailsFormProps> = ({ initialData, onSubmit }) => {
-  const [formData, setFormData] = useState<Partial<DriverRegistrationData>>(initialData);
+  // Initialize form data with all properties from initialData, including vehicleDocuments
+  const [formData, setFormData] = useState<Partial<DriverRegistrationData>>({
+    ...initialData,
+    accountHolderName: initialData.accountHolderName || '',
+    accountNumber: initialData.accountNumber || '',
+    ifscCode: initialData.ifscCode || '',
+    upiId: initialData.upiId || ''
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,7 +97,15 @@ export const BankDetailsForm: React.FC<BankDetailsFormProps> = ({ initialData, o
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(formData);
+      // Make sure to preserve all existing data, especially vehicleDocuments
+      onSubmit({
+        ...initialData,  // Include all initial data
+        accountHolderName: formData.accountHolderName,
+        accountNumber: formData.accountNumber,
+        ifscCode: formData.ifscCode,
+        upiId: formData.upiId,
+        vehicleDocuments: initialData.vehicleDocuments  // Explicitly preserve vehicleDocuments
+      });
     }
   };
 

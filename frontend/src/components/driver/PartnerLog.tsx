@@ -21,7 +21,7 @@ const PartnerLog: React.FC = () => {
   // Add useEffect to prevent back navigation after successful login
   useEffect(() => {
     // Check if user is already logged in
-    const { token } = sessionManager.getPartnerSession();
+    const { token } = sessionManager.getDriverSession();
     if (token) {
       navigate('/partner/dashboard', { replace: true });
     }
@@ -63,6 +63,8 @@ const PartnerLog: React.FC = () => {
         const response = await axios.post("http://localhost:3001/auth/login-otp", { email });
 
         if (response.data.success) {
+          console.log("OTP sent successfully:", response.data);
+          
           dispatch(setEmailId(email))
           setStep("otp");
           setMessage("OTP sent successfully to your email");
@@ -104,9 +106,11 @@ const PartnerLog: React.FC = () => {
         const response = await authService.verifyLoginOtp(email, otp);
 
         if (response.success) {
-          dispatch(setEmailId(email));
+          console.log("OTP verified successfully:", response);
+          
+          dispatch(setEmailId(response.email));
 
-          sessionManager.setPartnerSession(response.token, {
+          sessionManager.setDriverSession(response.token, {
             email,
             partnerId: response.partnerId,
             role: 'driver'

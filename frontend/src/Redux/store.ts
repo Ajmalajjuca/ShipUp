@@ -5,7 +5,7 @@ import driverSlice from './slices/driverSlice';
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    driver:driverSlice
+    driver: driverSlice
   },
 });
 

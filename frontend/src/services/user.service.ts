@@ -5,7 +5,8 @@ interface UpdateProfileData {
   phone?: string;
   currentPassword?: string;
   newPassword?: string;
-  profileImage?: File;
+  profileImage?: string;
+  userId?: string;
 }
 
 interface User {
@@ -23,11 +24,29 @@ interface User {
 export const userService = {
   updateProfile: async (data: UpdateProfileData) => {
     const formData = new FormData();
+    
+    // Ensure userId is included in the form data
+    if (data.userId) {
+      formData.append('userId', data.userId);
+    }
+    
+    // Add other fields to form data
     Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value);
+      if (value !== undefined && key !== 'userId') {
+        // Handle profile image differently if it's a URL vs a File
+        if (key === 'profileImage') {
+          console.log('Adding profileImage to form data:', value);
+          // If it's a string (URL), append it directly
+          formData.append('profileImagePath', value.toString());
+        } else {
+          formData.append(key, value);
+        }
       }
     });
+
+    console.log('Sending form data for profile update:', 
+      Object.fromEntries(formData.entries())
+    );
 
     const response = await userApi.put('/update-profile', formData, {
       headers: {

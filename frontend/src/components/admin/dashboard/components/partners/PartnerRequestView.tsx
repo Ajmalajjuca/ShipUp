@@ -38,6 +38,28 @@ interface PartnerDetails {
   personalDocumentsCompleted: boolean;
   vehicleDetailsCompleted: boolean;
   createdAt: string;
+  vehicleDocuments:{
+    aadhar:{
+      backUrl: string;
+      frontUrl: string;
+    },
+    insurance:{
+      backUrl: string;
+      frontUrl: string;
+    },
+    license:{
+      backUrl: string;
+      frontUrl: string;
+    },
+    pan:{
+      backUrl: string;
+      frontUrl: string;
+    },
+    pollution:{
+      backUrl: string;
+      frontUrl: string;
+    },
+  }
 }
 
 interface VerificationField {
@@ -59,6 +81,8 @@ const PartnerRequestView: React.FC = () => {
   const fetchPartnerDetails = async () => {
     try {
       const response = await driverService.getDriverById(partnerId!);
+      console.log('Fetched partner details:', response.partner);
+      
       setPartner(response.partner);
     } catch (error) {
       console.error('Error fetching partner details:', error);
@@ -137,7 +161,7 @@ const PartnerRequestView: React.FC = () => {
           <div className="flex items-center mt-6">
             {partner.profilePicturePath ? (
               <img 
-                src={`http://localhost:3003/uploads/profile-images/${partner.profilePicturePath}`}
+                src={`${partner.profilePicturePath}`}
                 alt={partner.fullName}
                 className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
               />
@@ -210,23 +234,23 @@ const PartnerRequestView: React.FC = () => {
               documents={[
                 { 
                   label: "License",
-                  path: partner.licensePath,
+                  path: partner.vehicleDocuments.license.frontUrl,
                   docType: "license",
-                  isComplete: Boolean(partner.licensePath),
+                  isComplete: Boolean(partner.vehicleDocuments.license.frontUrl),
                   verificationField: "vehicleDetailsCompleted"
                 },
                 { 
                   label: "Insurance",
-                  path: partner.insuranceDocPath,
+                  path: partner.vehicleDocuments.insurance.frontUrl,
                   docType: "insurance",
-                  isComplete: Boolean(partner.insuranceDocPath),
+                  isComplete: Boolean(partner.vehicleDocuments.insurance.frontUrl),
                   verificationField: "vehicleDetailsCompleted"
                 },
                 { 
                   label: "Pollution Certificate",
-                  path: partner.pollutionDocPath,
+                  path: partner.vehicleDocuments.pollution.frontUrl,
                   docType: "pollution",
-                  isComplete: Boolean(partner.pollutionDocPath),
+                  isComplete: Boolean(partner.vehicleDocuments.pollution.frontUrl),
                   verificationField: "vehicleDetailsCompleted"
                 }
               ]}
@@ -262,16 +286,16 @@ const PartnerRequestView: React.FC = () => {
               documents={[
                 { 
                   label: "Aadhar Card",
-                  path: partner.aadharPath,
+                  path: partner.vehicleDocuments.aadhar.frontUrl,
                   docType: "aadhar",
-                  isComplete: Boolean(partner.aadharPath),
+                  isComplete: Boolean(partner.vehicleDocuments.aadhar.frontUrl),
                   verificationField: "personalDocumentsCompleted"
                 },
                 { 
                   label: "PAN Card",
-                  path: partner.panPath,
+                  path: partner.vehicleDocuments.pan.frontUrl,
                   docType: "pan",
-                  isComplete: Boolean(partner.panPath),
+                  isComplete: Boolean(partner.vehicleDocuments.pan.frontUrl),
                   verificationField: "personalDocumentsCompleted"
                 }
               ]}
@@ -371,10 +395,11 @@ const DocumentsCard: React.FC<{
             <span className="text-gray-700">{doc.label}</span>
           </div>
           <div className="flex items-center space-x-2">
+            
             {doc.path && (
               <button 
                 className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm hover:bg-blue-100 transition-colors"
-                onClick={() => window.open(`http://localhost:3003/uploads/documents/${doc.docType}/${doc.path}`, '_blank')}
+                onClick={() => window.open(`${doc.path}`, '_blank')}
               >
                 View
               </button>

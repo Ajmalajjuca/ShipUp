@@ -68,7 +68,7 @@ export const userController = {
       const userData = {
         ...user,
         profileImage: user.profileImage 
-          ? `${API_URL}/uploads/${user.profileImage}`
+          ? `${user.profileImage}`
           : null
       };
 
@@ -120,9 +120,11 @@ export const userController = {
 
   async updateProfile(req: Request, res: Response) {
     try {
-      console.log('Update profile request received:', { body: req.body, file: req.file });
+      console.log('Update profile request received:', { 
+        body: req.body, 
+        file: req.file ? 'File attached' : 'No file attached' 
+      });
       
-      // Get userId from token if available or from request body
       let userId;
       if (req.user && req.user.userId) {
         userId = req.user.userId;
@@ -140,7 +142,8 @@ export const userController = {
         return;
       }
       
-      const { fullName, phone, currentPassword, newPassword } = req.body;
+      const { fullName, phone, currentPassword, newPassword, profileImagePath } = req.body;
+      const profileImage = req.file;
       
       // Get auth token from headers
       const authHeader = req.headers.authorization;
@@ -182,7 +185,6 @@ export const userController = {
           console.log('Password updated successfully');
         } catch (error: any) {
           console.error('Password update error from auth service:', error.response?.data || error.message);
-          // Use 400 status code for password errors to prevent automatic logout
           res.status(400).json({
             success: false,
             message: error.response?.data?.message || 'Password change failed - current password may be incorrect',
@@ -193,59 +195,27 @@ export const userController = {
         }
       }
 
-      const profileImage = req.file;
-      console.log('Profile image:', profileImage ? { filename: profileImage.filename, path: profileImage.path } : 'No image uploaded');
-      
       // Get user from repository
       const user = await userRepository.findById(userId);
       if (!user) {
         console.log('User not found in database:', userId);
-        if (profileImage) {
-          fs.unlinkSync(profileImage.path);
-          console.log('Deleted uploaded image due to user not found');
-        }
         res.status(404).json({ 
           success: false, 
           message: 'User not found',
-          shouldClearSession: true // Indicate that session should be cleared
+          shouldClearSession: true
         });
         return;
       }
 
       console.log('Found user:', { userId: user.userId, email: user.email });
 
-      // Delete old profile image if exists and new one is uploaded
-      if (profileImage && user.profileImage) {
-        const oldImagePath = path.join(__dirname, '../../../uploads', user.profileImage);
-        try {
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-            console.log('Deleted old profile image:', oldImagePath);
-          } else {
-            console.log('Old profile image not found at path:', oldImagePath);
-          }
-        } catch (error) {
-          console.error('Failed to delete old profile image:', error);
-        }
-      }
-
       // Prepare update data
       const updateData: any = {
         ...(fullName && { fullName }),
         ...(phone && { phone }),
+        ...(profileImage && { profileImage: (profileImage as Express.MulterS3.File).location }),
+        ...(profileImagePath && { profileImage: profileImagePath }) // Use profileImagePath if provided
       };
-      
-      // Only add profileImage to updateData if a new image was uploaded
-      if (profileImage) {
-        // Ensure the directory exists
-        const profileImagesDir = path.join(__dirname, '../../../uploads/profile-images');
-        if (!fs.existsSync(profileImagesDir)) {
-          fs.mkdirSync(profileImagesDir, { recursive: true });
-          console.log('Created profile-images directory:', profileImagesDir);
-        }
-        
-        updateData.profileImage = `profile-images/${profileImage.filename}`;
-      }
 
       console.log('Updating user with data:', updateData);
 
@@ -253,10 +223,8 @@ export const userController = {
       const updatedUser = await userRepository.update(userId, updateData);
       console.log('User updated successfully');
 
-      // Create full URL for profile image
-      const profileImageUrl = updatedUser.profileImage 
-        ? `${API_URL}/uploads/${updatedUser.profileImage}`
-        : null;
+      // Return the direct S3 URL for the profile image
+      const profileImageUrl = updatedUser.profileImage;
 
       console.log('Sending successful response with updated user data');
       res.status(200).json({
@@ -268,19 +236,11 @@ export const userController = {
         }
       });
     } catch (error: any) {
-      if (req.file) {
-        try {
-          fs.unlinkSync(req.file.path);
-          console.log('Deleted uploaded image due to error');
-        } catch (unlinkError) {
-          console.error('Error deleting file:', unlinkError);
-        }
-      }
       console.error('Update profile error:', error.message, error.stack);
       res.status(500).json({ 
         success: false, 
         message: 'Failed to update profile',
-        shouldClearSession: false // Don't clear session for server errors
+        shouldClearSession: false
       });
     }
   },
@@ -293,7 +253,7 @@ export const userController = {
       const usersWithFullUrls = users.map(user => ({
         ...user,
         profileImage: user.profileImage 
-          ? `${API_URL}/uploads/${user.profileImage}`
+          ? `${user.profileImage}`
           : null
       }));
 

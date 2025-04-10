@@ -18,13 +18,45 @@ const driverSchema = new Schema({
   ifscCode: { type: String, required: true },
   upiId: { type: String, required: true },
   
-  // Document paths
+  // Legacy document paths (maintained for backward compatibility)
   aadharPath: { type: String },
   panPath: { type: String },
   licensePath: { type: String },
   insuranceDocPath: { type: String },
   pollutionDocPath: { type: String },
   profilePicturePath: { type: String },
+
+  // New document structure with front and back URLs
+  vehicleDocuments: {
+    aadhar: {
+      frontUrl: { type: String },
+      backUrl: { type: String }
+    },
+    pan: {
+      frontUrl: { type: String },
+      backUrl: { type: String }
+    },
+    license: {
+      frontUrl: { type: String },
+      backUrl: { type: String }
+    },
+    insurance: {
+      frontUrl: { type: String },
+      backUrl: { type: String }
+    },
+    pollution: {
+      frontUrl: { type: String },
+      backUrl: { type: String }
+    },
+    registration: {
+      frontUrl: { type: String },
+      backUrl: { type: String }
+    },
+    permit: {
+      frontUrl: { type: String },
+      backUrl: { type: String }
+    }
+  },
 
   // Status flags
   isActive: { type: Boolean, default: true },

@@ -23,13 +23,33 @@ export const partnerController = {
         accountNumber,
         ifscCode,
         upiId,
+        vehicleDocuments: vehicleDocumentsStr,
+        profilePicturePath
       } = req.body;
+
+      // Parse vehicleDocuments if it's a string (from FormData)
+      let vehicleDocuments;
+      try {
+        if (vehicleDocumentsStr && typeof vehicleDocumentsStr === 'string') {
+          vehicleDocuments = JSON.parse(vehicleDocumentsStr);
+          console.log('Parsed vehicleDocuments:', vehicleDocuments);
+        }
+      } catch (error) {
+        console.error('Error parsing vehicleDocuments:', error);
+      }
 
       // Handle file uploads
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       
-      // Create a map of file paths
+      // Create a map of file paths (legacy format - for backward compatibility)
       const fileMap: { [key: string]: string } = {};
+      
+      // Add profilePicturePath if it was passed directly (from S3)
+      if (profilePicturePath) {
+        console.log('Using provided S3 profilePicturePath:', profilePicturePath);
+        fileMap['profilePicturePath'] = profilePicturePath;
+      }
+      
       if (files) {
         Object.keys(files).forEach(fieldname => {
           if (files[fieldname] && files[fieldname][0]) {
@@ -65,38 +85,44 @@ export const partnerController = {
 
       const partnerId = `DRV-${uuidv4()}`;
 
+      const authResponse = await axios.post('http://localhost:3001/auth/register-driver', {
+        email,
+        role: 'driver',
+        partnerId,
+      });
+      
+      
+      if (!authResponse.data.success) {
+        res.status(400).json({
+          success: false,
+          error: authResponse.data.error || 'Authentication registration failed'
+        });
+        return
+      }
+      
+      // Create the driver with file paths and vehicle documents
+      const result = await createDriver.execute({
+        partnerId,
+        fullName,
+        mobileNumber,
+        dateOfBirth,
+        address,
+        email,
+        vehicleType,
+        registrationNumber,
+        accountHolderName,
+        accountNumber,
+        ifscCode,
+        upiId,
+        // Use the mapped field names for legacy support
+        ...fileMap,
+        // Add the new vehicle documents data structure
+        vehicleDocuments,
+        profilePicturePath,
+      });
+      console.log('result',result);
+      
       try {
-        const authResponse = await axios.post('http://localhost:3001/auth/register-driver', {
-          email,
-          role: 'driver',
-          partnerId,
-        });
-
-        if (!authResponse.data.success) {
-           res.status(400).json({
-            success: false,
-            error: authResponse.data.error || 'Authentication registration failed'
-          });
-          return
-        }
-
-        // Create the driver with file paths
-        const result = await createDriver.execute({
-          partnerId,
-          fullName,
-          mobileNumber,
-          dateOfBirth,
-          address,
-          email,
-          vehicleType,
-          registrationNumber,
-          accountHolderName,
-          accountNumber,
-          ifscCode,
-          upiId,
-          // Use the mapped field names
-          ...fileMap
-        });
 
         if (!result.success) {
           // Rollback auth service registration if driver creation fails
@@ -190,7 +216,7 @@ export const partnerController = {
         email: driver.email,
         phone: driver.mobileNumber,
         profileImage: driver.profilePicturePath 
-          ? `${process.env.API_URL}/uploads/${driver.profilePicturePath}`
+          ? `${driver.profilePicturePath}`
           : null,
         createdAt: driver.createdAt,
         totalOrders: driver.totalOrders || 0,
@@ -200,7 +226,9 @@ export const partnerController = {
         status: driver.isActive || false,  // Keep this for PartnerList
         bankDetailsCompleted: driver.bankDetailsCompleted || false,
         personalDocumentsCompleted: driver.personalDocumentsCompleted || false,
-        vehicleDetailsCompleted: driver.vehicleDetailsCompleted || false
+        vehicleDetailsCompleted: driver.vehicleDetailsCompleted || false,
+        // Include vehicle documents if they exist
+        vehicleDocuments: driver.vehicleDocuments || null
       }));
 
       res.status(200).json({
@@ -316,6 +344,8 @@ export const partnerController = {
         pollutionDocPath: driver.pollutionDocPath 
           ? driver.pollutionDocPath
           : null,
+        // Include the vehicle documents if they exist
+        vehicleDocuments: driver.vehicleDocuments || null
       };
       
       
@@ -647,6 +677,86 @@ export const partnerController = {
 
     } catch (error) {
       console.error('Update profile image error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  },
+  async updateDocumentUrls(req: Request, res: Response) {
+    try {
+      const { partnerId } = req.params;
+      const { vehicleDocuments } = req.body;
+
+      if (!vehicleDocuments || typeof vehicleDocuments !== 'object') {
+        res.status(400).json({
+          success: false,
+          error: 'vehicleDocuments object is required'
+        });
+        return;
+      }
+
+      console.log('Updating document URLs for partner:', partnerId);
+      console.log('Document data:', vehicleDocuments);
+
+      // Find the driver first to check if it exists
+      const driver = await partnerRepository.findById(partnerId);
+      if (!driver) {
+        res.status(404).json({
+          success: false,
+          error: 'Partner not found'
+        });
+        return;
+      }
+
+      // Update the driver with the new document URLs
+      const updatedDriver = await partnerRepository.findByIdAndUpdate(
+        partnerId,
+        { vehicleDocuments }
+      );
+
+      // Update document completion status if needed
+      const personalDocs = ['aadhar', 'pan', 'license'];
+      const vehicleDocs = ['insurance', 'pollution', 'registration', 'permit'];
+      
+      // Check if all personal documents have been uploaded
+      const personalDocsComplete = personalDocs.every(doc => 
+        vehicleDocuments[doc] && 
+        vehicleDocuments[doc].frontUrl && 
+        vehicleDocuments[doc].backUrl
+      );
+      
+      // Check if all vehicle documents have been uploaded
+      const vehicleDocsComplete = vehicleDocs.some(doc => 
+        vehicleDocuments[doc] && 
+        vehicleDocuments[doc].frontUrl && 
+        vehicleDocuments[doc].backUrl
+      );
+
+      // Update completion flags if needed
+      const updateFlags: any = {};
+      if (personalDocsComplete) {
+        updateFlags.personalDocumentsCompleted = true;
+      }
+      if (vehicleDocsComplete) {
+        updateFlags.vehicleDetailsCompleted = true;
+      }
+
+      // Update flags if any were set
+      if (Object.keys(updateFlags).length > 0) {
+        await partnerRepository.findByIdAndUpdate(partnerId, updateFlags);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Document URLs updated successfully',
+        partner: {
+          ...updatedDriver,
+          vehicleDocuments
+        }
+      });
+    } catch (error) {
+      console.error('Update document URLs error:', error);
       res.status(500).json({
         success: false,
         error: 'Internal server error'

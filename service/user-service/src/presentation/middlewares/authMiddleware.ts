@@ -85,7 +85,7 @@ export const authMiddleware = async (
       // Add user info to request object
       if (user.profileImage) {
         // Add full URL for profile image
-        user.profileImage = `${API_URL}/uploads/${user.profileImage}`;
+        user.profileImage = `${user.profileImage}`;
       }
       
       req.user = { 

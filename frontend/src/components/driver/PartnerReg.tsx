@@ -10,6 +10,7 @@ import { VehicleDetailsForm } from './components/VehicleDetailsForm';
 import { BankDetailsForm } from './components/BankDetailsForm';
 import axios, { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { s3Utils } from '../../utils/s3Utils';
 
 const PartnerReg = () => {
     const [currentStep, setCurrentStep] = useState<string>('registration');
@@ -49,13 +50,19 @@ const PartnerReg = () => {
         }
     };
 
-    const handleDocumentUpload = (files: File[]) => {
-        if (!files.length) return;
+    const handleDocumentUpload = async (files: { front?: string; back?: string }) => {
+        if (!files.front || !files.back) return;
 
-        // Store document in formData
+        // Store S3 URLs in formData using the new vehicleDocuments structure
         setFormData(prev => ({
             ...prev,
-            [selectedDocument]: files[0]
+            vehicleDocuments: {
+                ...prev.vehicleDocuments,
+                [selectedDocument]: {
+                    frontUrl: files.front,
+                    backUrl: files.back
+                }
+            }
         }));
 
         // Handle document completion status
@@ -92,34 +99,52 @@ const PartnerReg = () => {
 
         // Append all non-file data
         Object.entries(data).forEach(([key, value]) => {
-            if (value instanceof File) {
+            if (key === 'vehicleDocuments') {
+                // Handle the vehicleDocuments structure separately
+                if (value && typeof value === 'object') {
+                    // Stringify the vehicleDocuments object to preserve its structure
+                    formDataToSend.append('vehicleDocuments', JSON.stringify(value));
+                }
+            } else if (key === 'profilePicturePath') {
+                // Add the S3 profile picture URL directly
+                if (value) {
+                    formDataToSend.append('profilePicturePath', String(value));
+                }
+            } else if (value instanceof File) {
                 formDataToSend.append(key, value);
-            } else if (value !== undefined && value !== null) {
+            } else if (key === 'profilePicture' && value === null && data.profilePicturePath) {
+                // Skip the null profile picture if we have a profilePicturePath
+                // This prevents issues where both are sent but one is null
+            } else if (value !== undefined && value !== null && typeof value !== 'object') {
                 formDataToSend.append(key, String(value));
+            } else if (value !== undefined && value !== null && typeof value === 'object') {
+                // For other nested objects, stringify them
+                formDataToSend.append(key, JSON.stringify(value));
             }
         });
 
         try {
+            console.log('Submitting driver registration data with document URLs:', data.vehicleDocuments);
+            console.log('Profile picture path:', data.profilePicturePath);
+            
             const response = await axios.post('http://localhost:3003/api/drivers', formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
             
-
             if (response.data.status === "success") {
-
                 setCurrentStep('verification');
             } else {
                 setSubmitError('Registration failed. Please try again.');
             }
         } catch (error: any) {
+            console.error('Driver registration error:', error);
             setSubmitError(
                 ((error as AxiosError)?.response?.data as { message?: string })?.message ||
                 'An error occurred while submitting your application. Please try again.'
             );
             alert(`Error: ${error.response?.data?.error || 'Something went wrong!'}`);
-
         } finally {
             setIsSubmitting(false);
         }
@@ -179,7 +204,6 @@ const PartnerReg = () => {
                         <DocumentUpload
                             documentType={selectedDocument}
                             onSubmit={handleDocumentUpload}
-
                         />
                     </DocumentLayout>
                 );
@@ -268,7 +292,6 @@ const PartnerReg = () => {
                             </div>
                             <div className="mt-4 text-center">
                                 <button onClick={()=>navigate('/partner')}
-
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                                 >
                                     Go to Login

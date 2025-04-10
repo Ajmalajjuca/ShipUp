@@ -1,61 +1,13 @@
 import express from 'express';
 import { partnerController } from '../controllers/driverController';
 import { authMiddleware, adminOnly } from '../middlewares/authMiddleware';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { upload } from '../../utils/s3Config';
 
 const router = express.Router();
 
-// Configure storage for different document types
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    let uploadPath = path.join(__dirname, '../../../uploads');
-    
-    // Determine the appropriate subdirectory based on fieldname
-    if (file.fieldname === 'profilePicture') {
-      uploadPath = path.join(uploadPath, 'profile-images');
-    } else {
-      uploadPath = path.join(uploadPath, 'documents', file.fieldname);
-    }
-    
-    // Create directory if it doesn't exist
-    fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    // Add file extension to maintain file type
-    const fileExt = path.extname(file.originalname);
-    // Use a unique filename
-    cb(null, `${Date.now()}${fileExt}`);
-  }
-});
-
-// Add file filter to validate uploads
-const fileFilter = (req: any, file: any, cb: any) => {
-  // Accept images and documents
-  if (file.mimetype.startsWith('image/') || 
-      file.mimetype === 'application/pdf' ||
-      file.mimetype === 'application/msword' ||
-      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type'), false);
-  }
-};
-
-const uploadMulter = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
-});
-
 // Public routes
 router.post('/drivers', 
-  uploadMulter.fields([
+  upload.fields([
     { name: 'aadhar', maxCount: 1 },
     { name: 'pan', maxCount: 1 },
     { name: 'license', maxCount: 1 },
@@ -89,5 +41,56 @@ router.put('/drivers/:partnerId/profile-image',
   upload.single('profileImage'),
   partnerController.updateProfileImage
 );
+
+// New route for updating document URLs directly
+router.put('/drivers/:partnerId/documents', 
+  authMiddleware,
+  partnerController.updateDocumentUrls
+);
+
+// S3 upload route for driver documents
+router.post('/s3/upload', authMiddleware, (req: express.Request, res: express.Response): void => {
+  // Use dynamic field based on request
+  const fieldName = req.query.type === 'profile' ? 'profileImage' : 'file';
+  
+  upload.single(fieldName)(req, res, (err) => {
+    try {
+      if (err) {
+        console.error('Multer upload error:', err);
+        res.status(400).json({ 
+          success: false, 
+          error: 'Error uploading file: ' + err.message 
+        });
+        return;
+      }
+      
+      if (!req.file) {
+        res.status(400).json({ success: false, error: 'No file uploaded' });
+        return;
+      }
+      
+      const s3File = req.file as Express.MulterS3.File;
+      
+      console.log('File uploaded successfully');
+      console.log('Field name used:', fieldName);
+      console.log('File details:', {
+        originalname: s3File.originalname,
+        mimetype: s3File.mimetype,
+        size: s3File.size,
+        location: s3File.location
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'File uploaded successfully',
+        fileUrl: s3File.location,
+        fileType: fieldName === 'profileImage' ? 'profile' : 'document'
+      });
+    } catch (error) {
+      console.error('S3 upload error:', error);
+      res.status(500).json({ success: false, error: 'Failed to upload file' });
+    }
+  });
+});
 
 export default router;

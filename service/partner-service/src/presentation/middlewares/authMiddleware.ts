@@ -4,8 +4,10 @@ import axios from 'axios';
 
 // Define TokenPayload interface
 interface TokenPayload {
-  userId: string;
+  userId?: string;
+  tempId?: string;
   role: string;
+  purpose?: string;
 }
 
 // Extend Express Request type to include user
@@ -41,21 +43,30 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         }
         
         try {
-        // Verify token locally first
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
+          // Verify token locally first
+          const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
           
-            // Check if user is a driver
-            if (decoded.role !== 'driver') {
-                 res.status(403).json({
-                    success: false,
-                    message: 'Not authorized as driver'
-                });
-                return
+          // Handle temporary tokens for document uploads
+          if (decoded.purpose === 'document-upload' && decoded.role === 'driver') {
+            // Allow temporary tokens for S3 uploads only
+            if (req.path.includes('/s3/upload')) {
+              req.user = decoded;
+              return next();
             }
+          }
+          
+          // Check if user is a driver
+          if (decoded.role !== 'driver') {
+               res.status(403).json({
+                  success: false,
+                  message: 'Not authorized as driver'
+              });
+              return
+          }
 
-            // Set user info in request
-            req.user = decoded;
-            next();
+          // Set user info in request
+          req.user = decoded;
+          next();
         } catch (error) {
             console.error('Token verification error:');
              res.status(401).json({ 

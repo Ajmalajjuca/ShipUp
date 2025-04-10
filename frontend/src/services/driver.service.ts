@@ -1,4 +1,6 @@
 import { driverApi, partnerApi } from './axios/instance';
+import axios from 'axios';
+import { sessionManager } from '../utils/sessionManager';
 
 interface Driver {
   partnerId: string;
@@ -44,6 +46,8 @@ interface DriverProfile {
   email: string;
   address?: string;
 }
+
+const PARTNER_SERVICE_URL = import.meta.env.VITE_PARTNER_SERVICE_URL || 'http://localhost:3003/api';
 
 export const driverService = {
   getAllDrivers: async () => {
@@ -130,4 +134,30 @@ export const driverService = {
     
     return response.data.profile;
   },
+
+  // Add a new method to update document URLs
+  async updateDocumentUrls(partnerId: string, vehicleDocuments: any) {
+    try {
+      const { token } = sessionManager.getDriverSession();
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
+      const response = await axios.put(
+        `${PARTNER_SERVICE_URL}/drivers/${partnerId}/documents`,
+        { vehicleDocuments },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Error updating document URLs:', error);
+      throw error.response?.data || error.message;
+    }
+  }
 }; 

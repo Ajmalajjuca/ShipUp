@@ -24,6 +24,15 @@ export class CreateDriver {
     insuranceDocPath?: string;
     pollutionDocPath?: string;
     profilePicturePath?: string;
+    vehicleDocuments?: {
+      aadhar?: { frontUrl?: string; backUrl?: string };
+      pan?: { frontUrl?: string; backUrl?: string };
+      license?: { frontUrl?: string; backUrl?: string };
+      insurance?: { frontUrl?: string; backUrl?: string };
+      pollution?: { frontUrl?: string; backUrl?: string };
+      registration?: { frontUrl?: string; backUrl?: string };
+      permit?: { frontUrl?: string; backUrl?: string };
+    };
   }): Promise<{ success: boolean; driver?: Driver; error?: string }> {
     try {
       const existingDriver = await this.partnerRepo.findByEmail(data.email);

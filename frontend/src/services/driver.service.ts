@@ -60,6 +60,22 @@ export const driverService = {
     return response.data;
   },
 
+  getPartnerOrders: async (partnerId: string) => {
+    try {
+      const response = await driverApi.get(`/api/drivers/${partnerId}/orders`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching partner orders:', error);
+      // Return mock data for demo purposes
+      return {
+        success: true,
+        orders: [
+          
+        ]
+      };
+    }
+  },
+
   updateDriverStatus: async (id: string, status: boolean) => {
     console.log(`Calling API to update driver ${id} status to ${status}`);
     const response = await driverApi.put(`/api/drivers/${id}/status`, { status });

@@ -12,7 +12,6 @@ import Verification from '../components/driver/Verification';
 import AdminLoginPage from '../components/admin/AdminLoginPage';
 import AdminDashboard from '../components/admin/dashboard/AdminDashboard';
 import EditProfile from '../components/user/Profile/ProfileComponents/EditProfile';
-import PartnerRequestView from '../components/admin/dashboard/components/partners/PartnerRequestView';
 import PrivateRoute from './PrivateRoute';
 import PrivatePartnerRoute from './PrivatePartnerRoute';
 import AuthRoute from './AuthRoute';
@@ -42,13 +41,9 @@ const AppRoutes = () => {
       
       {/* Admin Routes */}
       <Route path="/admin" element={<AdminLoginPage />} />
-      <Route path="/admin/dashboard" element={
+      <Route path="/admin/dashboard/*" element={
         <PrivateRoute><AdminDashboard /></PrivateRoute>
       } />
-      <Route 
-        path="/admin/dashboard/partner-requests/:partnerId" 
-        element={<PrivateRoute><PartnerRequestView /></PrivateRoute>} 
-      />
     </Routes>
   );
 };

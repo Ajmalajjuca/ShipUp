@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { sessionManager } from '../../../../../utils/sessionManager';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 import { driverService } from '../../../../../services/driver.service';
 
 interface PartnerRequest {
@@ -18,12 +17,15 @@ interface PartnerRequest {
   joiningDate: string;
 }
 
-const PartnerRequest: React.FC = () => {
+interface PartnerRequestProps {
+  onViewPartner: (partnerId: string) => void;
+}
+
+const PartnerRequest: React.FC<PartnerRequestProps> = ({ onViewPartner }) => {
   const [requests, setRequests] = useState<PartnerRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchRequests();
@@ -65,7 +67,7 @@ const PartnerRequest: React.FC = () => {
   };
 
   const handleView = (partnerId: string) => {
-    navigate(`/admin/dashboard/partner-requests/${partnerId}`);
+    onViewPartner(partnerId);
   };
 
   const filteredRequests = requests.filter(request => 
@@ -134,7 +136,7 @@ const PartnerRequest: React.FC = () => {
                   </div>
                 </td>
                 <td className="py-3 px-4">
-                  {new Date(request.joiningDate).toLocaleDateString()}
+                  {new Date(request.createdAt).toLocaleDateString('en-GB')}
                 </td>
                 <td className="py-3 px-4">
                   <span className={`px-2 py-1 rounded-full text-xs ${

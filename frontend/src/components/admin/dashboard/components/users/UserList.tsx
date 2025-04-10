@@ -23,6 +23,10 @@ interface EditUserModalProps {
   onUpdate: (updatedUser: User) => void;
 }
 
+interface UserListProps {
+  onViewUser: (userId: string) => void;
+}
+
 const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
     fullName: user.fullName,
@@ -136,7 +140,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose, on
   );
 };
 
-const UserList: React.FC = () => {
+const UserList: React.FC<UserListProps> = ({ onViewUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -192,6 +196,10 @@ const UserList: React.FC = () => {
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
+  };
+
+  const handleView = (userId: string) => {
+    onViewUser(userId);
   };
 
   const handleUserUpdate = (updatedUser: User) => {
@@ -305,7 +313,7 @@ const UserList: React.FC = () => {
                     </button>
                     <button 
                       className="text-green-500 hover:text-green-700 transition-colors"
-                      onClick={() => {/* Add view handler */}}
+                      onClick={() => handleView(user.userId)}
                       aria-label={`View details for ${user.fullName}`}
                       title="View details"
                     >

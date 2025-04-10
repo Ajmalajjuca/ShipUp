@@ -23,7 +23,11 @@ interface Partner {
   vehicleDetailsCompleted: boolean;
 }
 
-const PartnerList: React.FC = () => {
+interface PartnerListProps {
+  onViewPartner: (partnerId: string) => void;
+}
+
+const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +125,10 @@ const PartnerList: React.FC = () => {
       console.error('Error updating partner:', error);
       toast.error('Failed to update partner');
     }
+  };
+
+  const handleView = (partnerId: string) => {
+    onViewPartner(partnerId);
   };
 
   const filteredPartners = partners.filter(partner =>
@@ -248,7 +256,7 @@ const PartnerList: React.FC = () => {
                     <button
                       className="text-green-500 hover:text-green-700 transition-colors"
                       title="View details"
-                      onClick={() => {/* Add view handler */ }}
+                      onClick={() => handleView(partner.partnerId)}
                     >
                       <Eye size={18} />
                     </button>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { driverService } from '../../../../../services/driver.service';
 import { 
   ArrowLeft, 
@@ -67,9 +66,12 @@ interface VerificationField {
   label: string;
 }
 
-const PartnerRequestView: React.FC = () => {
-  const { partnerId } = useParams();
-  const navigate = useNavigate();
+interface PartnerRequestViewProps {
+  partnerId: string;
+  onBack: () => void;
+}
+
+const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBack }) => {
   const [partner, setPartner] = useState<PartnerDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('personal');
@@ -80,7 +82,7 @@ const PartnerRequestView: React.FC = () => {
 
   const fetchPartnerDetails = async () => {
     try {
-      const response = await driverService.getDriverById(partnerId!);
+      const response = await driverService.getDriverById(partnerId);
       console.log('Fetched partner details:', response.partner);
       
       setPartner(response.partner);
@@ -91,11 +93,9 @@ const PartnerRequestView: React.FC = () => {
       setLoading(false);
     }
   };
-  
 
   const handleBack = () => {
-    navigate(-1);
-    localStorage.setItem('activeSubItem', 'Requests');
+    onBack();
   };
 
   const verificationFields: VerificationField[] = [
@@ -106,7 +106,7 @@ const PartnerRequestView: React.FC = () => {
 
   const handleVerification = async (field: string) => {
     try {
-      const response = await driverService.verifyDocument(partnerId!, field);
+      const response = await driverService.verifyDocument(partnerId, field);
       if (response.success) {
         setPartner(prev => prev ? { ...prev, [field]: true } : null);
         toast.success('Verification updated successfully');

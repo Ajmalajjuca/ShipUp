@@ -28,6 +28,8 @@ import PartnerRequest from './components/partners/PartnerRequest';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { sessionManager } from "../../../utils/sessionManager"; 
 import PartnerRequestView from './components/partners/PartnerRequestView';
+import PartnerDetailView from './components/partners/PartnerDetailView';
+import CustomerDetailView from './components/users/CustomerDetailView';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -136,6 +138,9 @@ const AdminDashboard: React.FC = () => {
   const [activeSubItem, setActiveSubItem] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+  const [selectedVerifiedPartnerId, setSelectedVerifiedPartnerId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -143,23 +148,7 @@ const AdminDashboard: React.FC = () => {
     sessionManager.logout();
   };
 
-  const users = [
-    { sl: 1, name: 'Anika Tahosin', contactInfo: 'a****@gmail.com, +8*******', totalOrders: 19, totalAmount: 651.0, availablePoints: 24, status: true },
-    { sl: 2, name: 'Sir Moba', contactInfo: 's****@gmail.com, +8*******', totalOrders: 4, totalAmount: 18801, availablePoints: 1542, status: true },
-    // Add more users as needed
-  ];
 
-  const partners = [
-    { sl: 1, name: 'Dim Tim', contactInfo: 'd****@gmail.com, +8*******', joiningDate: '07 Nov 2023, 05:57 PM', totalOrders: 6, ongoing: 4, canceled: 0, completed: 2 },
-    // Add more partners as needed
-  ];
-
-  const requests = [
-    { sl: 1, name: 'Dim Tim', contactInfo: 'd****@gmail.com, +8*******', branch: '', identityType: '', identityNumber: '', identityImage: '', status: 'Pending' },
-    { sl: 2, name: 'john ', contactInfo: 'd****@gmail.com, +8*******', branch: '', identityType: '', identityNumber: '', identityImage: '', status: 'Pending' },
-    { sl: 3, name: 'justin', contactInfo: 'd****@gmail.com, +8*******', branch: '', identityType: '', identityNumber: '', identityImage: '', status: 'Pending' },
-    // Add more requests as needed
-  ];
 
   // Check screen size and adjust sidebar for mobile responsiveness
   useEffect(() => {
@@ -201,19 +190,50 @@ const AdminDashboard: React.FC = () => {
 
   // Function to render the main content based on route and activeSubItem
   const renderMainContent = () => {
-    // Check if we're on a partner request view page
-    if (location.pathname.includes('/partner-requests/')) {
-      return <PartnerRequestView />;
+    // If a user is selected for viewing details
+    if (selectedUserId) {
+      return <CustomerDetailView
+               userId={selectedUserId}
+               onBack={() => {
+                 setSelectedUserId(null);
+                 setActiveItem('Users');
+                 setActiveSubItem('User List');
+               }}
+             />;
+    }
+
+    // If a partner request is selected for viewing details
+    if (selectedPartnerId) {
+      return <PartnerRequestView 
+               partnerId={selectedPartnerId} 
+               onBack={() => {
+                 setSelectedPartnerId(null);
+                 setActiveItem('Partners');
+                 setActiveSubItem('Requests');
+               }}
+             />;
+    }
+
+    // If a verified partner is selected for viewing details
+    if (selectedVerifiedPartnerId) {
+      return <PartnerDetailView 
+               partnerId={selectedVerifiedPartnerId} 
+               onBack={() => {
+                 setSelectedVerifiedPartnerId(null);
+                 setActiveItem('Partners');
+                 setActiveSubItem('Partner List');
+               }}
+             />;
     }
 
     // Otherwise render based on activeSubItem
     switch (activeSubItem) {
       case 'User List':
-        return <UserList />;
+        return <UserList onViewUser={(id) => setSelectedUserId(id)} />;
       case 'Partner List':
-        return <PartnerList />;
+        return <PartnerList onViewPartner={(id) => setSelectedVerifiedPartnerId(id)} />;
       case 'Requests':
-        return <PartnerRequest />;
+        return <PartnerRequest onViewPartner={(id) => setSelectedPartnerId(id)} />;
       default:
         return (
           <>
@@ -368,11 +388,7 @@ const AdminDashboard: React.FC = () => {
                   isActive={activeSubItem === 'User List'} 
                   onClick={() => handleSubItemClick('Users', 'User List')}
                 />
-                <DropdownItem 
-                  title="Add User" 
-                  isActive={activeSubItem === 'Add User'} 
-                  onClick={() => handleSubItemClick('Users', 'Add User')}
-                />
+                
               </div>
             )}
             
@@ -383,7 +399,7 @@ const AdminDashboard: React.FC = () => {
               hasDropdown={true}
               isActive={activeItem === 'Partners'}
               onClick={() => toggleDropdown('Partners')}
-              badge={3}
+              
               sidebarOpen={sidebarOpen}
             />
             
@@ -396,15 +412,10 @@ const AdminDashboard: React.FC = () => {
                 />
                 <DropdownItem 
                   title="Requests" 
-                  badge={3}
                   isActive={activeSubItem === 'Requests'} 
                   onClick={() => handleSubItemClick('Partners', 'Requests')}
                 />
-                <DropdownItem 
-                  title="Add Partner" 
-                  isActive={activeSubItem === 'Add Partner'} 
-                  onClick={() => handleSubItemClick('Partners', 'Add Partner')}
-                />
+                
               </div>
             )}
             
@@ -578,7 +589,11 @@ const AdminDashboard: React.FC = () => {
           )}
           
           <h1 className="text-xl font-semibold text-gray-800">
-            {location.pathname.includes('/partner-requests/') ? 'Partner Request Details' : (activeSubItem || activeItem)}
+            {selectedPartnerId || selectedVerifiedPartnerId 
+              ? 'Deliveryman Details' 
+              : selectedUserId
+                ? 'Customer Details'
+                : (activeSubItem || activeItem)}
           </h1>
 
           <div className="flex items-center space-x-4">

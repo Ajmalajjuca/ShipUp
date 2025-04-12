@@ -28,7 +28,6 @@ export const authMiddleware = async (
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      console.log('No token provided in request headers');
       res.status(401).json({ 
         success: false, 
         message: 'No token provided',
@@ -39,7 +38,6 @@ export const authMiddleware = async (
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      console.log('Invalid token format in request headers');
       res.status(401).json({ 
         success: false, 
         message: 'Invalid token format',
@@ -60,7 +58,6 @@ export const authMiddleware = async (
       
       // Check if user exists and status is false
       if (!user) {
-        console.log(`User not found with ID: ${decoded.userId}`);
         res.status(401).json({ 
           success: false, 
           message: 'User not found', 
@@ -71,7 +68,6 @@ export const authMiddleware = async (
 
       // Check user status
       if (user.status === false) {
-        console.log(`User is blocked: ${decoded.userId}`);
         res.status(401).json({ 
           success: false, 
           message: 'Your account has been blocked. Please contact admin for support.',
@@ -95,7 +91,6 @@ export const authMiddleware = async (
 
       next();
     } catch (error: any) {
-      console.log('JWT verification failed:', error.message);
       let errorMessage = 'Invalid token';
       let errorCode = 'invalid_token';
       

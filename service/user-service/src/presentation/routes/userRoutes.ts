@@ -53,7 +53,6 @@ router.post('/s3/upload', (req: Request, res: Response) => {
       
       // Determine which field to use based on the type parameter
       const fieldName = req.query.type === 'profile' ? 'profileImage' : 'file';
-      console.log('Using field name for upload:', fieldName);
       
       // Process the upload with S3
       s3Upload.single(fieldName)(req, res, (err) => {
@@ -68,11 +67,7 @@ router.post('/s3/upload', (req: Request, res: Response) => {
         }
         
         const s3File = req.file as Express.MulterS3.File;
-        console.log('File uploaded successfully to S3:', {
-          fieldName,
-          originalname: s3File.originalname,
-          location: s3File.location
-        });
+
         
         res.json({ 
           success: true,

@@ -5,6 +5,7 @@ import { sessionManager } from '../../../../../utils/sessionManager';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../../common/Pagination';
 import EditPartnerModal from './EditPartnerModal';
+import { confirmDialog } from '../../../../../utils/confirmDialog';
 
 interface Partner {
   partnerId: string;
@@ -64,7 +65,6 @@ const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
   const handleStatusToggle = async (partnerId: string, currentStatus: boolean) => {
     try {
       // Log the current status and the intended new status
-      console.log(`Toggling partner ${partnerId} status from ${currentStatus} to ${!currentStatus}`);
       
       // Call the API to update the status
       const response = await driverService.updateDriverStatus(partnerId, !currentStatus);
@@ -73,7 +73,6 @@ const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
         // Use the status field directly from the API response
         const newStatus = response.partner.status;
           
-        console.log(`Status updated from API: ${newStatus}`);
         
         // Update the partners array with the new status
         setPartners(prevPartners => 
@@ -95,7 +94,15 @@ const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
   };
 
   const handleDelete = async (partnerId: string) => {
-    if (!window.confirm('Are you sure you want to delete this partner?')) return;
+    const confirmed = await confirmDialog(
+      'Are you sure you want to delete this partner? This action cannot be undone.',
+      {
+        title: 'Delete Partner',
+        confirmText: 'Delete',
+        type: 'delete'
+      }
+    );
+    if (!confirmed) return;
 
     try {
       await driverService.deleteDriver(partnerId);

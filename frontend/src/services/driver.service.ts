@@ -77,9 +77,7 @@ export const driverService = {
   },
 
   updateDriverStatus: async (id: string, status: boolean) => {
-    console.log(`Calling API to update driver ${id} status to ${status}`);
     const response = await driverApi.put(`/api/drivers/${id}/status`, { status });
-    console.log('Status update response:', response.data);
     return response.data;
   },
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, LogOut, Truck } from 'lucide-react';
+import { CreditCard, Award, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ProfileCardProps {
@@ -9,6 +9,8 @@ interface ProfileCardProps {
     phone?: string;
     referralId?: string;
     profileImage?: string;
+    loyaltyPoints?: number;
+    walletBalance?: number;
   };
   showControls?: boolean;
   onLogout?: () => void;
@@ -24,88 +26,102 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   children 
 }) => {
   const navigate = useNavigate();
-  const [isHovering, setIsHovering] = useState('');
   const [imageError, setImageError] = useState(false);
 
   return (
-    <div className="w-full md:w-1/3 bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6 border-b pb-2">
-          {isEditing ? 'Edit Profile' : 'Profile'}
-        </h2>
-        
-        <div className="flex flex-col items-center">
+    <div className="w-full md:w-1/3 bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border border-gray-100">
+      {/* Header gradient banner */}
+      <div className="h-12 bg-indigo-900"></div>
+      
+      <div className="p-6 relative">
+        {/* Profile image positioned to overlap the banner */}
+        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2">
           {userData.profileImage && !imageError ? (
             <img 
               src={userData.profileImage}
               alt={userData.fullName}
-              className="w-24 h-24 rounded-full object-cover mb-4"
+              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
               onError={() => {
                 console.error('Failed to load profile image:', userData.profileImage);
                 setImageError(true);
               }}
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-r from-indigo-900 to-red-400 flex items-center justify-center mb-4">
-              <span className="text-white text-2xl font-bold">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-teal-500 flex items-center justify-center border-4 border-white shadow-md">
+              <span className="text-white text-xl font-bold">
                 {userData.fullName.split(' ').map(n => n[0]).join('')}
               </span>
             </div>
           )}
-          
-          <h3 className="text-xl font-semibold text-gray-800">{userData.fullName}</h3>
-          <p className="text-gray-600 mt-1">{userData.email}</p>
-          <p className="text-gray-600 mt-1">{userData.phone}</p>
+        </div>
+        
+        <h2 className="text-2xl font-bold mt-12 mb-6 text-center text-gray-800">
+          {isEditing ? 'Edit Profile' : userData.fullName}
+        </h2>
+        
+        <div className="flex flex-col items-center">
+          <p className="text-gray-600 text-center">{userData.email}</p>
+          {userData.phone && <p className="text-gray-600 mt-1 text-center">{userData.phone}</p>}
 
           {userData.referralId && (
-            <div className="mt-6 w-full bg-gray-100 p-3 rounded-lg">
+            <div className="mt-6 w-full bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">Referral Id:</span>
-                <span className="font-mono font-medium">{userData.referralId}</span>
+                <span className="font-mono font-medium text-indigo-900">{userData.referralId}</span>
               </div>
             </div>
           )}
 
-          {children} {/* Slot for additional content */}
+          {/* Slot for additional content */}
+          {children}
         </div>
         
         {showControls && (
-          <>
-            <div className="mt-6 flex justify-center space-x-4">
-              <button 
-                onMouseEnter={() => setIsHovering('settings')}
-                onMouseLeave={() => setIsHovering('')}
-                onClick={() => navigate('/profile/edit')}
-                className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-300"
-              >
-                <Settings size={20} className={`transition-all duration-300 ${isHovering === 'settings' ? 'rotate-90 text-red-400' : 'text-gray-600'}`} />
-              </button>
-              {onLogout && (
-                <button 
-                  onClick={onLogout}
-                  onMouseEnter={() => setIsHovering('logout')}
-                  onMouseLeave={() => setIsHovering('')}
-                  className="p-3 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-300"
-                >
-                  <LogOut size={20} className={`transition-all duration-300 ${isHovering === 'logout' ? 'text-red-400 translate-x-1' : 'text-gray-600'}`} />
-                </button>
-              )}
+          <div className="mt-6">
+            {/* Balance & Loyalty Point Cards */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl p-4 text-white shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-4 opacity-10">
+                  <CreditCard size={64} />
+                </div>
+                <div className="flex items-center mb-2">
+                  <CreditCard size={18} className="mr-2" />
+                  <span className="text-sm font-medium">Wallet</span>
+                </div>
+                <div className="text-lg font-bold">
+                  ${userData.walletBalance?.toFixed(2) || '0.00'}
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 text-white shadow-md hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-4 opacity-10">
+                  <Award size={64} />
+                </div>
+                <div className="flex items-center mb-2">
+                  <Award size={18} className="mr-2" />
+                  <span className="text-sm font-medium">Loyalty</span>
+                </div>
+                <div className="text-lg font-bold">
+                  {userData.loyaltyPoints || 0} pts
+                </div>
+              </div>
             </div>
             
-            <div className="mt-6">
+            {/* Logout Button */}
+            {onLogout && (
               <button 
-                className="w-full bg-indigo-900 text-white py-3 px-4 rounded-md hover:bg-indigo-800 transition-all duration-300 flex items-center justify-center gap-2"
-                onClick={() => navigate("/become-partner")}
+                onClick={onLogout}
+                className="w-full mt-4 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 hover:from-red-50 hover:to-red-100 text-gray-700 hover:text-red-600 py-3 px-4 rounded-lg transition-all duration-300 border border-gray-200 hover:border-red-200"
               >
-                <Truck size={20} />
-                Become a Delivery Partner
+                <span className="font-medium">Logout</span>
+                <ChevronRight size={20} />
               </button>
-            </div>
-          </>
+            )}
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-export default ProfileCard; 
+export default ProfileCard;

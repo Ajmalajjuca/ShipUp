@@ -33,8 +33,6 @@ const EditProfile: React.FC = () => {
     new: false,
     confirm: false
   });
-
-  console.log('User data>>>:', user);
   
 
   const [formData, setFormData] = useState<EditProfileFormData>({
@@ -72,16 +70,12 @@ const EditProfile: React.FC = () => {
         setNewImageFile(profileFile);
         
         // Upload to S3 with explicit profile type
-        console.log('Uploading profile image to S3...');
         const imageUrl = await s3Utils.uploadImage(
           profileFile, 
           'shipup-user-profiles',
           false,  // Not a driver upload
           false   // Not a temporary upload
-        );
-        
-        console.log('Profile image uploaded successfully:', imageUrl);
-        
+        );        
         // Update the form data with the S3 URL
         setFormData(prev => ({
           ...prev,
@@ -151,11 +145,9 @@ const EditProfile: React.FC = () => {
       try {
         await sessionManager.verifyToken();
       } catch (refreshError) {
-        console.log("Token verification failed, proceeding with existing token");
       }
 
       const response = await userService.updateProfile(updateData);
-      console.log('Profile update response:', response);
 
       if (response.success) {
         const updatedUser = { ...user, ...response.user };
@@ -165,7 +157,6 @@ const EditProfile: React.FC = () => {
         navigate('/profile');
       } else {
         if (response.shouldClearSession === true) {
-          console.log('API requested session clearing, logging out');
           sessionManager.clearSession();
           navigate('/login');
         } else {
@@ -363,7 +354,7 @@ const EditProfile: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
+                className="px-6 py-2 bg-indigo-800 text-white rounded-lg hover:bg-indigo-900 disabled:bg-gray-400 transition-colors"
               >
                 {loading ? (
                   <div className="flex items-center">

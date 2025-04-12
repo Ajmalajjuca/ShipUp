@@ -23,13 +23,20 @@ const ModernProfilePage: React.FC = () => {
     { id: 'profile/edit', label: 'Edit Your Profile', icon: <User size={20} /> },
     { id: 'address', label: 'Address Book', icon: <MapPin size={20} /> },
     { id: 'tracking', label: 'Track Shipments', icon: <Truck size={20} /> },
-    { id: 'payment', label: 'Payment Methods', icon: <CreditCard size={20} /> },
     { id: 'history', label: 'Order History', icon: <History size={20} /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell size={20} /> },
     { id: 'support', label: 'Get Support', icon: <LifeBuoy size={20} /> },
   ];
   
-
+  const handleNavigate = (path: string) => {
+    // Handle special cases
+    if (path === 'address') {
+      navigate('/address');
+      return;
+    }
+    
+    navigate(`/${path}`);
+  };
 
   return (
     <div className="w-full md:w-2/3">
@@ -40,7 +47,7 @@ const ModernProfilePage: React.FC = () => {
               key={item.id}
               onMouseEnter={() => setIsHovering(item.id)}
               onMouseLeave={() => setIsHovering('')}
-              onClick={() => navigate(`/${item.id}`)}
+              onClick={() => handleNavigate(item.id)}
               className="w-full bg-white hover:bg-gray-50 p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group border border-gray-100"
             >
               <div className="flex items-center">

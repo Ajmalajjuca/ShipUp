@@ -152,7 +152,6 @@ const PartnerProfile: React.FC = () => {
 
   // Save handler for different sections
   const handleSave = async (section: keyof EditDataType) => {
-    console.log('driverrrrr>',driver);
     
     try {
       const response = await partnerApi.put(`/api/drivers/${driver.partnerId}/${section}`, {

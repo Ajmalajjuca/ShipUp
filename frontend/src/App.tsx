@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import { sessionManager } from './utils/sessionManager';
 import { loginSuccess } from './Redux/slices/authSlice';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { DialogProvider } from './utils/confirmDialog';
 import AppRoutes from './routes/AppRoutes';
 
 function App() {
@@ -69,8 +70,10 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
-      <Toaster position="top-right" />
-      <AppRoutes />
+      <DialogProvider>
+        <Toaster position="top-right" />
+        <AppRoutes />
+      </DialogProvider>
     </GoogleOAuthProvider>
   );
 }

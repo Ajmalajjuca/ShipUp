@@ -56,29 +56,24 @@ export const sessionManager = {
 
   async verifyToken() {
     const { token, user } = this.getSession();
-    console.log('Verifying token:', { token, user });
     
     if (!token || !user) return false;
 
     try {
       // First verify with auth service
-      console.log('Verifying token with auth service');
       const authResponse = await axios.get('http://localhost:3001/auth/verify-token', {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      console.log('Auth response:', authResponse.data);
       
       if (!authResponse.data.valid) {
-        console.log('Token verification failed with auth service');
         this.clearSession();
         return false;
       }
 
       // Then get latest user data from user service
-      console.log('Getting latest user data from user service');
       const userResponse = await axios.get(`http://localhost:3002/api/users/${user.userId}`, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -87,7 +82,6 @@ export const sessionManager = {
       });
 
       if (userResponse.data.success) {
-        console.log('Successfully verified token and got updated user data');
         // Update session with latest user data
         this.setSession({ ...user, ...userResponse.data.user }, token);
         return true;
@@ -103,12 +97,10 @@ export const sessionManager = {
 
   async verifyPartnerToken() {
     const { token, driverData } = this.getDriverSession();
-    console.log('Verifying partner token:', { token, driverData });
     
     if (!token || !driverData) return false;
 
     try {
-      console.log('Verifying partner token with auth service');
       // Use the auth service's verify-partner-token endpoint
       const authResponse = await axios.post('http://localhost:3001/auth/verify-partner-token', 
         { email: driverData.email },
@@ -121,13 +113,11 @@ export const sessionManager = {
       );
       
       if (!authResponse.data.success) {
-        console.log('Partner token verification failed');
         this.clearDriverSession();
         return false;
       }
 
       // Check the partner's data in the partner service
-      console.log('Getting latest partner data from partner service');
       const partnerResponse = await axios.get(`http://localhost:3003/api/drivers/${driverData.partnerId}`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -136,7 +126,6 @@ export const sessionManager = {
       });
 
       if (partnerResponse.data.success) {
-        console.log('Successfully verified partner token and got updated data');
         // Update driver session with latest data
         this.setDriverSession(token, {
           ...driverData,

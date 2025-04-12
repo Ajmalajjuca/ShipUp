@@ -35,7 +35,6 @@ export const userService = {
       if (value !== undefined && key !== 'userId') {
         // Handle profile image differently if it's a URL vs a File
         if (key === 'profileImage') {
-          console.log('Adding profileImage to form data:', value);
           // If it's a string (URL), append it directly
           formData.append('profileImagePath', value.toString());
         } else {
@@ -43,10 +42,6 @@ export const userService = {
         }
       }
     });
-
-    console.log('Sending form data for profile update:', 
-      Object.fromEntries(formData.entries())
-    );
 
     const response = await userApi.put('/update-profile', formData, {
       headers: {

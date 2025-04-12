@@ -32,7 +32,6 @@ export const partnerController = {
       try {
         if (vehicleDocumentsStr && typeof vehicleDocumentsStr === 'string') {
           vehicleDocuments = JSON.parse(vehicleDocumentsStr);
-          console.log('Parsed vehicleDocuments:', vehicleDocuments);
         }
       } catch (error) {
         console.error('Error parsing vehicleDocuments:', error);
@@ -46,7 +45,6 @@ export const partnerController = {
       
       // Add profilePicturePath if it was passed directly (from S3)
       if (profilePicturePath) {
-        console.log('Using provided S3 profilePicturePath:', profilePicturePath);
         fileMap['profilePicturePath'] = profilePicturePath;
       }
       
@@ -120,7 +118,6 @@ export const partnerController = {
         vehicleDocuments,
         profilePicturePath,
       });
-      console.log('result',result);
       
       try {
 
@@ -134,11 +131,21 @@ export const partnerController = {
           return
         }
 
+        // Generate a JWT token for the newly registered driver
+        const tokenResult = await axios.post('http://localhost:3001/auth/temp-token', {
+          userId: partnerId,
+          email,
+          role: 'driver'
+        });
+        
+        const token = tokenResult.data.token;
+
          res.status(201).json({
           success: true,
           status: 'success',
           message: 'Driver registered successfully.',
-          driver: { email, partnerId }
+          driver: { email, partnerId },
+          token: token // Return the token to the frontend
         });
         return
 
@@ -246,7 +253,6 @@ export const partnerController = {
       // Get the status from request body
       const newStatus = req.body.status;
 
-      console.log(`Status update request for partner ${partnerId}:`, req.body);
 
       if (newStatus === undefined || typeof newStatus !== 'boolean') {
         res.status(400).json({
@@ -408,7 +414,6 @@ export const partnerController = {
 
       // Update partner
       const updatedPartner = await partnerRepository.findByIdAndUpdate(partnerId, updateData);
-      console.log('updatedPartner>>>',updatedPartner);
       
 
       if (!updatedPartner) {
@@ -517,7 +522,6 @@ export const partnerController = {
         partnerId,
         updateData
       );
-      console.log('updatedPartner',updatedPartner);
       
 
       if (!updatedPartner) {
@@ -695,9 +699,6 @@ export const partnerController = {
         });
         return;
       }
-
-      console.log('Updating document URLs for partner:', partnerId);
-      console.log('Document data:', vehicleDocuments);
 
       // Find the driver first to check if it exists
       const driver = await partnerRepository.findById(partnerId);

@@ -120,20 +120,14 @@ export const userController = {
 
   async updateProfile(req: Request, res: Response) {
     try {
-      console.log('Update profile request received:', { 
-        body: req.body, 
-        file: req.file ? 'File attached' : 'No file attached' 
-      });
+
       
       let userId;
       if (req.user && req.user.userId) {
         userId = req.user.userId;
-        console.log('Using userId from authenticated token:', userId);
       } else if (req.body.userId) {
         userId = req.body.userId;
-        console.log('Using userId from request body:', userId);
       } else {
-        console.log('No userId provided in request');
         res.status(400).json({
           success: false,
           message: 'User ID is required',
@@ -148,7 +142,6 @@ export const userController = {
       // Get auth token from headers
       const authHeader = req.headers.authorization;
       if (!authHeader) {
-        console.log('No authorization header provided');
         res.status(401).json({
           success: false,
           message: 'Authorization header is required',
@@ -160,7 +153,6 @@ export const userController = {
       // If password change is requested, verify with auth service first
       if (currentPassword && newPassword) {
         try {
-          console.log('Updating password via auth service');
           const authResponse = await axios.put(`${AUTH_SERVICE_URL}/auth/update-password`, {
             userId,
             currentPassword,
@@ -173,7 +165,6 @@ export const userController = {
 
           const authData = authResponse.data as { success: boolean };
           if (!authData.success) {
-            console.log('Password change failed from auth service');
             res.status(400).json({
               success: false,
               message: 'Password change failed - current password may be incorrect',
@@ -182,9 +173,7 @@ export const userController = {
             });
             return;
           }
-          console.log('Password updated successfully');
         } catch (error: any) {
-          console.error('Password update error from auth service:', error.response?.data || error.message);
           res.status(400).json({
             success: false,
             message: error.response?.data?.message || 'Password change failed - current password may be incorrect',
@@ -198,7 +187,6 @@ export const userController = {
       // Get user from repository
       const user = await userRepository.findById(userId);
       if (!user) {
-        console.log('User not found in database:', userId);
         res.status(404).json({ 
           success: false, 
           message: 'User not found',
@@ -207,7 +195,6 @@ export const userController = {
         return;
       }
 
-      console.log('Found user:', { userId: user.userId, email: user.email });
 
       // Prepare update data
       const updateData: any = {
@@ -217,16 +204,13 @@ export const userController = {
         ...(profileImagePath && { profileImage: profileImagePath }) // Use profileImagePath if provided
       };
 
-      console.log('Updating user with data:', updateData);
 
       // Update user
       const updatedUser = await userRepository.update(userId, updateData);
-      console.log('User updated successfully');
 
       // Return the direct S3 URL for the profile image
       const profileImageUrl = updatedUser.profileImage;
 
-      console.log('Sending successful response with updated user data');
       res.status(200).json({
         success: true,
         message: 'Profile updated successfully',

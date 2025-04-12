@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DriverRegistrationData } from './types';
 import { DOCUMENT_STEPS } from './constants';
 import RegistrationLayout from './components/RegistrationLayout';
@@ -11,6 +11,8 @@ import { BankDetailsForm } from './components/BankDetailsForm';
 import axios, { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { s3Utils } from '../../utils/s3Utils';
+import { sessionManager } from '../../utils/sessionManager';
+import { toast } from 'react-hot-toast';
 
 const PartnerReg = () => {
     const [currentStep, setCurrentStep] = useState<string>('registration');
@@ -19,8 +21,23 @@ const PartnerReg = () => {
     const [completedDocuments, setCompletedDocuments] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [verificationData, setVerificationData] = useState<{[key: string]: boolean}>({
+        BankDetails: false,
+        PersonalDocuments: false,
+        VehicleDetails: false
+    });
 
     const navigate = useNavigate()
+    
+    // Check for existing driver session on load
+    useEffect(() => {
+        const { token, driverData } = sessionManager.getDriverSession();
+        if (token && driverData) {
+            // If already registered, go to verification page
+            navigate('/partner/verification', { replace: true });
+        }
+    }, [navigate]);
+
     const handleFormSubmit = (data: Partial<DriverRegistrationData>) => {
         if (!data.fullName || !data.mobileNumber || !data.dateOfBirth || !data.email || !data.address) {
             return; // Form validation will be handled in RegistrationForm
@@ -90,6 +107,28 @@ const PartnerReg = () => {
         setCurrentStep('documents');
     };
 
+    const handleLogout = () => {
+        try {
+            // Clear driver session
+            sessionManager.clearDriverSession();
+            
+            // Clear regular session as well to ensure all tokens are removed
+            sessionManager.clearSession();
+            
+            // Show success message
+            toast.success('Logged out successfully');
+            
+            // Navigate to partner login page
+            navigate('/partner');
+        } catch (error) {
+            console.error('Logout error:', error);
+            toast.error('Error during logout');
+            
+            // Attempt to navigate anyway
+            navigate('/partner');
+        }
+    };
+
     const submitToBackend = async (data: Partial<DriverRegistrationData>) => {
         setIsSubmitting(true);
         setSubmitError(null);
@@ -124,8 +163,6 @@ const PartnerReg = () => {
         });
 
         try {
-            console.log('Submitting driver registration data with document URLs:', data.vehicleDocuments);
-            console.log('Profile picture path:', data.profilePicturePath);
             
             const response = await axios.post('http://localhost:3003/api/drivers', formDataToSend, {
                 headers: {
@@ -133,8 +170,30 @@ const PartnerReg = () => {
                 },
             });
             
-            if (response.data.status === "success") {
-                setCurrentStep('verification');
+            if (response.data.success) {
+                // Store the token and user data in session                
+                if (response.data.token && response.data.driver) {
+                    sessionManager.setDriverSession(response.data.token,{
+                        email:response.data.driver.email,
+                        partnerId:response.data.driver.partnerId,
+                        role:'driver'
+                    });
+                    toast.success('Registration successful!');
+                    
+                    // Navigate to verification page
+                    navigate('/partner/dashboard', { replace: true });
+                } else {
+                    // Set verification data
+                    if (response.data.verificationStatus) {
+                        setVerificationData({
+                            BankDetails: response.data.verificationStatus.BankDetails || false,
+                            PersonalDocuments: response.data.verificationStatus.PersonalDocuments || false,
+                            VehicleDetails: response.data.verificationStatus.VehicleDetails || false
+                        });
+                    }
+                    
+                    setCurrentStep('verification');
+                }
             } else {
                 setSubmitError('Registration failed. Please try again.');
             }
@@ -173,6 +232,7 @@ const PartnerReg = () => {
                             onDocumentClick={handleDocumentClick}
                             onNextClick={handleNextClick}
                             completedDocuments={completedDocuments}
+                            isSubmitting={isSubmitting}
                         />
                     </DocumentLayout>
                 );
@@ -204,6 +264,14 @@ const PartnerReg = () => {
                         <DocumentUpload
                             documentType={selectedDocument}
                             onSubmit={handleDocumentUpload}
+                            initialUrls={
+                                formData.vehicleDocuments?.[selectedDocument as keyof typeof formData.vehicleDocuments] 
+                                ? {
+                                    front: formData.vehicleDocuments[selectedDocument as keyof typeof formData.vehicleDocuments]?.frontUrl,
+                                    back: formData.vehicleDocuments[selectedDocument as keyof typeof formData.vehicleDocuments]?.backUrl
+                                  }
+                                : undefined
+                            }
                         />
                     </DocumentLayout>
                 );
@@ -270,31 +338,30 @@ const PartnerReg = () => {
 
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                                    <span>{'Personal information'}</span>
-                                    <span className="text-sm text-green-600">
-                                        {'Approved'}
-                                    </span>
+                                    <span>Personal information</span>
+                                    <span className="text-sm text-green-600">Approved</span>
                                 </div>
-                                {DOCUMENT_STEPS.map(doc => (
 
+                                {DOCUMENT_STEPS.map(doc => (
                                     <div key={doc.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
                                         <span>{doc.title}</span>
-                                        <span className="text-sm text-yellow-600">
-                                            {isSubmitting ? 'Submitting...' : 'Verification Pending'}
+                                        <span className={`text-sm ${verificationData[doc.id] ? 'text-green-600' : 'text-yellow-600'}`}>
+                                            {verificationData[doc.id] ? 'Approved' : 'Verification Pending'}
                                         </span>
                                     </div>
-
                                 ))}
                             </div>
 
                             <div className="mt-6 text-center">
                                 <a href="#" className="text-red-500 text-sm">Need Help? Contact Us</a>
                             </div>
-                            <div className="mt-4 text-center">
-                                <button onClick={()=>navigate('/partner')}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+
+                            <div className="mt-4 flex justify-center">
+                                <button
+                                    onClick={handleLogout}
+                                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow-sm hover:bg-gray-300 transition-all"
                                 >
-                                    Go to Login
+                                    Go Back
                                 </button>
                             </div>
                         </div>

@@ -3,6 +3,7 @@ import { Search, Edit2, Eye, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../../common/Pagination';
 import { userService } from '../../../../../services/user.service';
+import { confirmDialog } from '../../../../../utils/confirmDialog';
 
 interface User {
   userId: string;
@@ -182,7 +183,15 @@ const UserList: React.FC<UserListProps> = ({ onViewUser }) => {
   };
 
   const handleDelete = async (userId: string) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    const confirmed = await confirmDialog(
+      'Are you sure you want to delete this user? This action cannot be undone.',
+      {
+        title: 'Delete User',
+        confirmText: 'Delete',
+        type: 'delete'
+      }
+    );
+    if (!confirmed) return;
 
     try {
       await userService.deleteUser(userId);

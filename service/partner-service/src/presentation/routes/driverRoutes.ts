@@ -71,15 +71,6 @@ router.post('/s3/upload', authMiddleware, (req: express.Request, res: express.Re
       
       const s3File = req.file as Express.MulterS3.File;
       
-      console.log('File uploaded successfully');
-      console.log('Field name used:', fieldName);
-      console.log('File details:', {
-        originalname: s3File.originalname,
-        mimetype: s3File.mimetype,
-        size: s3File.size,
-        location: s3File.location
-      });
-      
       res.json({ 
         success: true, 
         message: 'File uploaded successfully',

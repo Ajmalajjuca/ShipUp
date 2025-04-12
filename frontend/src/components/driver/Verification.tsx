@@ -8,6 +8,7 @@ import DeliveryPartnerDashboard from './components/DeliveryPartnerDashboard';
 import { sessionManager } from '../../utils/sessionManager';
 import { setEmailId } from '../../Redux/slices/driverSlice';
 import { driverService } from '../../services/driver.service';
+import { toast } from 'react-hot-toast';
 
 const Verification = () => {
     const email = useSelector((state: RootState) => state.driver.email);
@@ -58,7 +59,6 @@ const Verification = () => {
                 } catch (error: any) {
                     console.error('API Error:', error.response?.data || error.message);
                     if (error.response?.status === 401) {
-                        console.log('Clearing session due to auth error');
                         sessionManager.clearDriverSession();
                         navigate('/partner');
                     }
@@ -75,6 +75,28 @@ const Verification = () => {
     const isVerified = useMemo(() => (
         verificationData.BankDetails && verificationData.PersonalDocuments && verificationData.VehicleDetails
     ), [verificationData]);
+
+    const handleLogout = () => {
+        try {
+            // Clear driver session
+            sessionManager.clearDriverSession();
+            
+            // Clear regular session as well to ensure all tokens are removed
+            sessionManager.clearSession();
+            
+            // Show success message
+            toast.success('Logged out successfully');
+            
+            // Navigate to partner login page
+            navigate('/partner');
+        } catch (error) {
+            console.error('Logout error:', error);
+            toast.error('Error during logout');
+            
+            // Attempt to navigate anyway
+            navigate('/partner');
+        }
+    };
 
     return (
         <div>
@@ -110,7 +132,7 @@ const Verification = () => {
 
                         <div className="mt-4 flex justify-center">
                             <button
-                                onClick={() => navigate('/partner')}
+                                onClick={handleLogout}
                                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow-sm hover:bg-gray-300 transition-all"
                             >
                                 Go Back

@@ -229,11 +229,9 @@ const DeliveryPersonAvatar: React.FC<{
   onClick: () => void
 }> = ({ rating, driverData, onClick }) => {
   // Log data to help with debugging
-  console.log("Driver data in avatar:", driverData);
   
   // Extract profile image URL or default to null
   const profileImage = driverData?.profilePicturePath || driverData?.profileImage || null;
-  console.log("Profile image URL:", profileImage);
 
   return (
   <div className="relative bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300" onClick={onClick}>
@@ -337,17 +335,13 @@ const DeliveryPartnerDashboard: React.FC = () => {
   const Email = useSelector((state: RootState) => state.driver.email);
   const driver = useSelector((state: RootState) => state.driver);
   
-  useEffect(() => {
-    console.log("Current driver state:", driver);
-  }, [driver]);
+
   
   const fetchDriverDetails = async () => { 
     try {
       // Check if we already have driver data
       if (!driver.driverData) {
-        console.log("Fetching driver details for email:", Email);
         const response = await partnerApi.get(`/api/drivers/by-email/${Email}`);
-        console.log("API response:", response.data);
         dispatch(setDriverData({ 
           driverData: response.data.driver,
           token: response.data.token || driver.token
@@ -359,12 +353,7 @@ const DeliveryPartnerDashboard: React.FC = () => {
   }
 
   useEffect(() => {
-    console.log("Driver data:", driver.driverData);
-    console.log("Driver email:", Email);
-    
-    if (Email && !driver.driverData) {
-      console.log("Driver data not found, fetching...");
-      
+    if (Email && !driver.driverData) {      
       fetchDriverDetails();
     }
   }, [Email, driver.driverData]);

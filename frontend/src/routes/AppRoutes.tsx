@@ -12,6 +12,8 @@ import Verification from '../components/driver/Verification';
 import AdminLoginPage from '../components/admin/AdminLoginPage';
 import AdminDashboard from '../components/admin/dashboard/AdminDashboard';
 import EditProfile from '../components/user/Profile/ProfileComponents/EditProfile';
+import AddressBook from '../components/user/Profile/ProfileComponents/AddressBook';
+import AddAddressForm from '../components/user/Profile/ProfileComponents/AddAddressForm';
 import PrivateRoute from './PrivateRoute';
 import PrivatePartnerRoute from './PrivatePartnerRoute';
 import AuthRoute from './AuthRoute';
@@ -29,6 +31,8 @@ const AppRoutes = () => {
       <Route path="/home" element={<PrivateRoute><ShipUpApp /></PrivateRoute>} />
       <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/profile/edit" element={<PrivateRoute><EditProfile /></PrivateRoute>} />
+      <Route path="/address" element={<PrivateRoute><AddressBook /></PrivateRoute>} />
+      <Route path="/address/add" element={<PrivateRoute><AddAddressForm /></PrivateRoute>} />
       
       {/* Partner Routes */}
       <Route path="/register" element={<PartnerReg />} />

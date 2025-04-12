@@ -2,6 +2,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sessionManager } from "../../utils/sessionManager"; // Adjust path as needed
+import { toast } from "react-hot-toast";
 
 
 const AdminLoginPage: React.FC = () => {
@@ -33,14 +34,13 @@ const AdminLoginPage: React.FC = () => {
         // Store session
         sessionManager.setSession(response.data.user, response.data.token);
         navigate("/admin/dashboard");
-        alert("Login successful!");
+        toast.success("Login successful!");
       } else {
         navigate("/admin");
-        alert("Access denied: Admins only");
+        toast.error("Access denied: Admins only");
       }
     } catch (error: any) {
-      console.log("Login failed", error.response?.data?.error || error.message);
-      alert(error.response?.data?.error || "Login failed. Please try again.");
+      toast.error(error.response?.data?.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }

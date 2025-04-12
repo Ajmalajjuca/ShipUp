@@ -55,7 +55,6 @@ const PartnerDetailView: React.FC<PartnerDetailViewProps> = ({ partnerId, onBack
     try {
       const response = await driverService.getDriverById(partnerId);
       setPartner(response.partner);
-      console.log('Partner details:', response.partner);
 
     } catch (error) {
       console.error('Error fetching partner details:', error);

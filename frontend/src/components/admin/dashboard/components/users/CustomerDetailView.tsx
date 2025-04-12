@@ -37,7 +37,6 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({ userId, onBack 
   const fetchCustomerDetails = async () => {
     try {
       const response = await userService.getUserById(userId);
-      console.log('Customer details response:', response);
       
       // For demo purposes, if there's no real data, create mock data
       if (!response.user) {

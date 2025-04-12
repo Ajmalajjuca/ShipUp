@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DriverRegistrationData } from '../types';
 import { s3Utils } from '../../../utils/s3Utils';
 
 // Define interface for document URLs
 interface DocumentUrls {
   frontUrl?: string;
-  backUrl?: string;
 }
 
 interface VehicleDetailsFormProps {
@@ -23,10 +22,10 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
     manufacturingYear: initialData.manufacturingYear || '',
   });
   
-  // Track front and back files for each document type
+  // Track files for each document type (removed back files)
   const [documents, setDocuments] = useState<{
-    insurance: { front?: File; back?: File };
-    pollution: { front?: File; back?: File };
+    insurance: { front?: File };
+    pollution: { front?: File };
     registration: { front?: File; back?: File };
     permit: { front?: File; back?: File };
     license: { front?: File; back?: File };
@@ -38,8 +37,36 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
     license: {}
   });
   
+  // Track document URLs for previews
+  const [documentUrls, setDocumentUrls] = useState<{
+    insurance?: { frontUrl?: string };
+    pollution?: { frontUrl?: string };
+    registration?: { frontUrl?: string; backUrl?: string };
+    permit?: { frontUrl?: string; backUrl?: string };
+    license?: { frontUrl?: string; backUrl?: string };
+  }>({
+    insurance: initialData.vehicleDocuments?.insurance,
+    pollution: initialData.vehicleDocuments?.pollution,
+    registration: initialData.vehicleDocuments?.registration,
+    permit: initialData.vehicleDocuments?.permit,
+    license: initialData.vehicleDocuments?.license
+  });
+  
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [isUploading, setIsUploading] = useState(false);
+
+  // On component mount, load any existing document URLs from initialData
+  useEffect(() => {
+    if (initialData.vehicleDocuments) {
+      setDocumentUrls({
+        insurance: initialData.vehicleDocuments.insurance,
+        pollution: initialData.vehicleDocuments.pollution,
+        registration: initialData.vehicleDocuments.registration,
+        permit: initialData.vehicleDocuments.permit,
+        license: initialData.vehicleDocuments.license
+      });
+    }
+  }, [initialData.vehicleDocuments]);
 
   const vehicleTypes = [
     { id: '2-wheeler', label: '2-Wheeler' },
@@ -106,6 +133,14 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
       }
     }));
     
+    // Clear URL for this document type to avoid conflicts
+    if (documentUrls[documentType]) {
+      setDocumentUrls(prev => ({
+        ...prev,
+        [documentType]: undefined
+      }));
+    }
+    
     setErrors(prev => ({ ...prev, [`${documentType}-${side}`]: undefined }));
   };
 
@@ -155,13 +190,13 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
       }
     }
 
-    // Document validations - check both front and back files
-    if (!documents.insurance.front || !documents.insurance.back) {
-      newErrors['insurance'] = 'Both front and back insurance documents are required';
+    // Document validations - check if we have either a file or a URL for each required document
+    if (!documents.insurance.front && !documentUrls.insurance?.frontUrl) {
+      newErrors['insurance'] = 'Insurance document is required';
     }
     
-    if (!documents.pollution.front || !documents.pollution.back) {
-      newErrors['pollution'] = 'Both front and back pollution certificate are required';
+    if (!documents.pollution.front && !documentUrls.pollution?.frontUrl) {
+      newErrors['pollution'] = 'Pollution certificate is required';
     }
 
     setErrors(newErrors);
@@ -174,39 +209,43 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
     
     try {
       setIsUploading(true);
-      const vehicleDocuments: Record<string, DocumentUrls> = {};
+      const vehicleDocuments: Record<string, DocumentUrls> = {
+        // Keep existing document URLs that weren't replaced with new files
+        ...initialData.vehicleDocuments
+      };
       
-      // Upload insurance documents to S3
-      if (documents.insurance.front && documents.insurance.back) {
-        console.log('Uploading insurance documents to S3...');
-        
-        const [frontUrl, backUrl] = await Promise.all([
-          s3Utils.uploadImage(documents.insurance.front, 'shipup-driver-documents', true, true),
-          s3Utils.uploadImage(documents.insurance.back, 'shipup-driver-documents', true, true)
-        ]);
-        
-        vehicleDocuments.insurance = { frontUrl, backUrl };
+      // Upload insurance documents to S3 (front only) if a new file was selected
+      if (documents.insurance.front) {
+        const frontUrl = await s3Utils.uploadImage(
+          documents.insurance.front, 
+          'shipup-driver-documents', 
+          true, 
+          true
+        );
+        vehicleDocuments.insurance = { frontUrl };
+      } else if (documentUrls.insurance?.frontUrl) {
+        // Keep existing insurance document URL
+        vehicleDocuments.insurance = { frontUrl: documentUrls.insurance.frontUrl };
       }
       
-      // Upload pollution documents to S3
-      if (documents.pollution.front && documents.pollution.back) {
-        console.log('Uploading pollution documents to S3...');
-        
-        const [frontUrl, backUrl] = await Promise.all([
-          s3Utils.uploadImage(documents.pollution.front, 'shipup-driver-documents', true, true),
-          s3Utils.uploadImage(documents.pollution.back, 'shipup-driver-documents', true, true)
-        ]);
-        
-        vehicleDocuments.pollution = { frontUrl, backUrl };
+      // Upload pollution documents to S3 (front only) if a new file was selected
+      if (documents.pollution.front) {
+        const frontUrl = await s3Utils.uploadImage(
+          documents.pollution.front, 
+          'shipup-driver-documents', 
+          true, 
+          true
+        );
+        vehicleDocuments.pollution = { frontUrl };
+      } else if (documentUrls.pollution?.frontUrl) {
+        // Keep existing pollution document URL
+        vehicleDocuments.pollution = { frontUrl: documentUrls.pollution.frontUrl };
       }
       
       // Submit the form with the updated data structure
       onSubmit({
         ...formData,
-        vehicleDocuments: {
-          ...initialData.vehicleDocuments,
-          ...vehicleDocuments
-        }
+        vehicleDocuments
       });
     } catch (error) {
       console.error('Error uploading documents:', error);
@@ -216,19 +255,19 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
     }
   };
 
-  const renderFileUpload = (
-    type: 'insurance' | 'pollution' | 'registration' | 'permit' | 'license',
+  // Render file upload with preview for both new files and existing document URLs
+  const renderSingleFileUpload = (
+    type: 'insurance' | 'pollution',
     label: string
   ) => (
     <div className="mb-4">
       <label className="block text-xs text-gray-600 mb-1">{label}</label>
       
-      {/* Front side upload */}
-      <div className={`border-2 border-dashed rounded-lg p-3 mb-2 text-center flex flex-col justify-center items-center
+      {/* Front side upload only */}
+      <div className={`border-2 border-dashed rounded-lg p-4 mb-2 text-center flex flex-col justify-center items-center
         ${errors[`${type}-front`] ? 'border-red-500' : 'border-gray-300'}`}
       >
-        <p className="text-xs text-gray-600 mb-1">Front side</p>
-        
+        {/* Show file preview if a new file is selected */}
         {documents[type].front ? (
           <div className="relative w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg">
             <div className="flex items-center">
@@ -251,7 +290,46 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
                 [type]: { ...prev[type], front: undefined } 
               }))}
               className="text-red-500 hover:text-red-700"
-              aria-label={`Remove ${type} front document`}
+              aria-label={`Remove ${type} document`}
+              title={`Remove ${type} document`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : documentUrls[type]?.frontUrl ? (
+          /* Show existing document URL preview if available */
+          <div className="relative w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="ml-2 text-left">
+                <p className="text-xs font-medium text-gray-900">
+                  Document already uploaded
+                </p>
+                {documentUrls[type]?.frontUrl && (
+                  <a 
+                    href={documentUrls[type]?.frontUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-500 hover:underline"
+                  >
+                    View Document
+                  </a>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDocumentUrls(prev => ({ 
+                ...prev, 
+                [type]: undefined 
+              }))}
+              className="text-red-500 hover:text-red-700"
+              aria-label={`Remove existing ${type} document`}
+              title={`Remove existing ${type} document`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -259,6 +337,7 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
             </button>
           </div>
         ) : (
+          /* Upload input if no file or URL available */
           <>
             <input
               type="file"
@@ -269,79 +348,19 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
             />
             <label
               htmlFor={`${type}-front`}
-              className="inline-flex flex-col items-center cursor-pointer"
+              className="inline-flex flex-col items-center cursor-pointer p-4"
             >
-              <svg className="w-6 h-6 text-red-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              <span className="text-xs text-red-500">Upload</span>
+              <span className="text-sm text-red-500">Upload Document</span>
+              <span className="text-xs text-gray-500 mt-1">PDF or Image, max 5MB</span>
             </label>
           </>
         )}
         
         {errors[`${type}-front`] && (
           <p className="text-xs text-red-500 mt-1">{errors[`${type}-front`]}</p>
-        )}
-      </div>
-      
-      {/* Back side upload */}
-      <div className={`border-2 border-dashed rounded-lg p-3 text-center flex flex-col justify-center items-center
-        ${errors[`${type}-back`] ? 'border-red-500' : 'border-gray-300'}`}
-      >
-        <p className="text-xs text-gray-600 mb-1">Back side</p>
-        
-        {documents[type].back ? (
-          <div className="relative w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-            <div className="flex items-center">
-              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              <div className="ml-2 text-left">
-                <p className="text-xs font-medium text-gray-900 truncate">
-                  {documents[type].back?.name}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {(documents[type].back?.size ? (documents[type].back.size / 1024 / 1024).toFixed(2) : '0')} MB
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDocuments(prev => ({ 
-                ...prev, 
-                [type]: { ...prev[type], back: undefined } 
-              }))}
-              className="text-red-500 hover:text-red-700"
-              aria-label={`Remove ${type} back document`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        ) : (
-          <>
-            <input
-              type="file"
-              id={`${type}-back`}
-              accept=".pdf,image/*"
-              onChange={(e) => handleFileChange(type, 'back', e)}
-              className="hidden"
-            />
-            <label
-              htmlFor={`${type}-back`}
-              className="inline-flex flex-col items-center cursor-pointer"
-            >
-              <svg className="w-6 h-6 text-red-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <span className="text-xs text-red-500">Upload</span>
-            </label>
-          </>
-        )}
-        
-        {errors[`${type}-back`] && (
-          <p className="text-xs text-red-500 mt-1">{errors[`${type}-back`]}</p>
         )}
       </div>
       
@@ -415,11 +434,11 @@ export const VehicleDetailsForm: React.FC<VehicleDetailsFormProps> = ({ initialD
           <p className="text-xs text-gray-400 mt-1">Format: SS NN XX NNNN (S: State, N: Number, X: Letter)</p>
         </div>
 
-        {/* Insurance Document */}
-        {renderFileUpload('insurance', 'Vehicle Insurance Document')}
+        {/* Insurance Document - single upload */}
+        {renderSingleFileUpload('insurance', 'Vehicle Insurance Document')}
 
-        {/* Pollution Certificate */}
-        {renderFileUpload('pollution', 'Pollution Certificate')}
+        {/* Pollution Certificate - single upload */}
+        {renderSingleFileUpload('pollution', 'Pollution Certificate')}
 
         {errors.form && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">

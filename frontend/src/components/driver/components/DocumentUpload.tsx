@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { s3Utils } from '../../../utils/s3Utils';
 import { driverService } from '../../../services/driver.service';
 import { sessionManager } from '../../../utils/sessionManager';
@@ -6,17 +6,27 @@ import { sessionManager } from '../../../utils/sessionManager';
 interface DocumentUploadProps {
   documentType: string;
   onSubmit: (files: { front?: string; back?: string }) => void;
+  initialUrls?: { front?: string; back?: string };
 }
 
 export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   documentType,
   onSubmit,
+  initialUrls
 }) => {
   const [files, setFiles] = useState<{ front?: File; back?: File }>({});
   const [errors, setErrors] = useState<{ front?: string; back?: string }>({});
   const [uploading, setUploading] = useState<{ front?: boolean; back?: boolean }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [existingUrls, setExistingUrls] = useState<{ front?: string; back?: string }>(initialUrls || {});
+
+  // Load initial URLs if provided
+  useEffect(() => {
+    if (initialUrls) {
+      setExistingUrls(initialUrls);
+    }
+  }, [initialUrls]);
 
   const handleFileChange = (side: 'front' | 'back', event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -37,6 +47,11 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     setFiles(prev => ({ ...prev, [side]: file }));
     setErrors(prev => ({ ...prev, [side]: undefined }));
     
+    // Clear existing URL if user uploads a new file
+    if (existingUrls[side]) {
+      setExistingUrls(prev => ({ ...prev, [side]: undefined }));
+    }
+    
     // Clear general error when user takes action
     if (generalError) {
       setGeneralError(null);
@@ -46,11 +61,11 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate both files are uploaded
-    if (!files.front || !files.back) {
+    // Validate both files are uploaded or have existing URLs
+    if ((!files.front && !existingUrls.front) || (!files.back && !existingUrls.back)) {
       setErrors({
-        front: !files.front ? 'Front side photo is required' : undefined,
-        back: !files.back ? 'Back side photo is required' : undefined
+        front: !files.front && !existingUrls.front ? 'Front side photo is required' : undefined,
+        back: !files.back && !existingUrls.back ? 'Back side photo is required' : undefined
       });
       return;
     }
@@ -61,45 +76,37 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
     try {
       setUploading({ front: true, back: true });
       
+      // Only upload files that don't have existing URLs
+      const frontUrl = files.front 
+        ? await s3Utils.uploadImage(files.front, 'shipup-driver-documents', true, true)
+        : existingUrls.front;
+      
+      const backUrl = files.back
+        ? await s3Utils.uploadImage(files.back, 'shipup-driver-documents', true, true)
+        : existingUrls.back;
 
-      // Perform real S3 uploads
-      try {
-        console.log('Uploading files to S3...');
-        const [frontKey, backKey] = await Promise.all([
-          s3Utils.uploadImage(files.front, 'shipup-driver-documents', true, true),
-          s3Utils.uploadImage(files.back, 'shipup-driver-documents', true, true)
-        ]);
-        
-        console.log('S3 URLs received:');
-        console.log('- Front:', frontKey);
-        console.log('- Back:', backKey);
-        
-        // If driver is logged in, also update the document URLs in the database
-        const { driverData } = sessionManager.getDriverSession();
-        if (driverData?.partnerId) {
-          try {
-            // Create vehicleDocuments object with just this document type
-            const vehicleDocuments = {
-              [documentType]: {
-                frontUrl: frontKey,
-                backUrl: backKey
-              }
-            };
-            
-            // Update document URLs in the database
-            await driverService.updateDocumentUrls(driverData.partnerId, vehicleDocuments);
-            console.log('Document URLs updated in database');
-          } catch (error) {
-            console.error('Could not update document URLs in database:', error);
-            // Continue even if this fails - we'll still return the URLs to the parent component
-          }
+      
+      // If driver is logged in, also update the document URLs in the database
+      const { driverData } = sessionManager.getDriverSession();
+      if (driverData?.partnerId) {
+        try {
+          // Create vehicleDocuments object with just this document type
+          const vehicleDocuments = {
+            [documentType]: {
+              frontUrl,
+              backUrl
+            }
+          };
+          
+          // Update document URLs in the database
+          await driverService.updateDocumentUrls(driverData.partnerId, vehicleDocuments);
+        } catch (error) {
+          console.error('Could not update document URLs in database:', error);
+          // Continue even if this fails - we'll still return the URLs to the parent component
         }
-        
-        onSubmit({ front: frontKey, back: backKey });
-      } catch (error) {
-        console.error('Error uploading documents:', error);
-        throw error;
       }
+      
+      onSubmit({ front: frontUrl, back: backUrl });
       
     } catch (error: any) {
       console.error('Document upload error:', error);
@@ -113,6 +120,36 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  // Render document preview for an existing URL
+  const renderExistingDocument = (side: 'front' | 'back', url: string) => (
+    <div className="relative w-full h-[90px]">
+      <div className="w-full h-full rounded-lg bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <svg className="w-6 h-6 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-gray-900 mt-1">Document uploaded</p>
+          <a 
+            href={url}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs text-blue-500 hover:underline"
+          >
+            View Document
+          </a>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => setExistingUrls(prev => ({ ...prev, [side]: undefined }))}
+        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full text-xs"
+        disabled={uploading[side as keyof typeof uploading]}
+      >
+        ✕
+      </button>
+    </div>
+  );
 
   return (
     <div className="w-full max-w-md mx-auto p-4">
@@ -156,6 +193,8 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                 ✕
               </button>
             </div>
+          ) : existingUrls.front ? (
+            renderExistingDocument('front', existingUrls.front)
           ) : (
             <>
               <input
@@ -209,6 +248,8 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
                 ✕
               </button>
             </div>
+          ) : existingUrls.back ? (
+            renderExistingDocument('back', existingUrls.back)
           ) : (
             <>
               <input

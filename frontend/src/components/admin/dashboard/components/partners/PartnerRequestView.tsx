@@ -83,7 +83,6 @@ const PartnerRequestView: React.FC<PartnerRequestViewProps> = ({ partnerId, onBa
   const fetchPartnerDetails = async () => {
     try {
       const response = await driverService.getDriverById(partnerId);
-      console.log('Fetched partner details:', response.partner);
       
       setPartner(response.partner);
     } catch (error) {

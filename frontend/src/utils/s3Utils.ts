@@ -14,10 +14,6 @@ export const s3Utils = {
   // Get a temporary token for document uploads
   getTemporaryToken: async (): Promise<string> => {
     try {
-      console.log('Requesting temporary token with data:', {
-        purpose: 'document-upload',
-        role: 'driver'
-      });
       
       const data = {
         purpose: 'document-upload',
@@ -33,7 +29,6 @@ export const s3Utils = {
         data: data
       });
       
-      console.log('Temporary token response:', response.data);
       
       if (!response.data) {
         throw new Error('No response data received');
@@ -62,14 +57,11 @@ export const s3Utils = {
       // For temporary uploads during registration, always try to get a temporary token first
       if (isTemporaryUpload) {
         try {
-          console.log('Attempting to get temporary token for file upload');
           token = await s3Utils.getTemporaryToken();
-          console.log('Successfully obtained temporary token for upload');
         } catch (error) {
           console.error('Failed to get temporary token:', error);
           // Only fall back to session token if not a temporary upload
           if (!isTemporaryUpload) {
-            console.log('Falling back to session token');
             if (isDriver) {
               const { token: driverToken } = sessionManager.getDriverSession();
               token = driverToken;
@@ -103,20 +95,12 @@ export const s3Utils = {
       
       // Use the appropriate field name based on the file type
       if (isProfilePicture) {
-        console.log('Detected profile picture upload');
         formData.append('profileImage', file); // Use profileImage field for profile pictures
       } else {
         formData.append('file', file);  // Use file field for regular documents
       }
       
-      // Log file details
-      console.log('Uploading file:', {
-        name: file.name,
-        type: file.type,
-        size: `${(file.size / 1024).toFixed(2)} KB`,
-        bucket: bucket,
-        isProfilePicture: isProfilePicture
-      });
+
 
       // Use partner service URL for driver uploads
       let uploadUrl = isDriver ? 
@@ -127,8 +111,6 @@ export const s3Utils = {
       if (isProfilePicture) {
         uploadUrl += '?type=profile';
       }
-        
-      console.log('Uploading to URL:', uploadUrl);
 
       const response = await axios.post(uploadUrl, formData, {
         headers: {
@@ -137,7 +119,6 @@ export const s3Utils = {
         },
       });
 
-      console.log('Upload response:', response.data);
 
       if (response.data.success) {
         return response.data.fileUrl;

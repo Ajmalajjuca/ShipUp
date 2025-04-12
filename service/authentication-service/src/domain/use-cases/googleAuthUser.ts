@@ -43,9 +43,7 @@ export class GoogleAuthUser {
             role: 'user'
           });
         } catch (error) {
-          // If user profile creation fails, delete the auth user
-          console.log('llll');
-          
+          console.error('Error creating user:', error);          
           if (user) {
             await this.authRepository.delete(userData.userId);
           }

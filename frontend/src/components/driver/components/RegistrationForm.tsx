@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DriverRegistrationData } from '../types';
 import { s3Utils } from '../../../utils/s3Utils';
+import { useNavigate } from 'react-router-dom';
 
 interface RegistrationFormProps {
   initialData: Partial<DriverRegistrationData>;
@@ -12,7 +13,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
+  const navigate = useNavigate();
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -49,6 +50,24 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
     if (!formData.mobileNumber) newErrors.mobileNumber = 'Mobile number is required';
     if (!formData.email) newErrors.email = 'Email is required';
     if (!formData.address) newErrors.address = 'Address is required';
+    
+    // Check if user is at least 18 years old
+    if (formData.dateOfBirth) {
+      const birthDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      // If birthday hasn't occurred yet this year, subtract a year
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 18) {
+        newErrors.dateOfBirth = 'You must be at least 18 years old to register';
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -63,14 +82,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
       
       // Upload profile picture to S3 if it exists
       if (profileImage) {
-        console.log('Uploading profile picture to S3...', profileImage);
         profilePictureUrl = await s3Utils.uploadImage(
           profileImage, 
           'shipup-driver-documents', 
           true,    // isDriver 
           true     // isTemporaryUpload
         );
-        console.log('Profile picture uploaded successfully:', profilePictureUrl);
       }
       
       // Submit form data with the profile picture URL
@@ -81,9 +98,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
         profilePicturePath: profilePictureUrl, // Store the S3 URL
         vehicleDocuments: initialData.vehicleDocuments
       };
-      
-      console.log('Submitting data to parent with profilePicturePath:', profilePictureUrl);
-      console.log('Full form data:', dataToSubmit);
+
       
       onSubmit(dataToSubmit);
     } catch (error: any) {
@@ -245,6 +260,14 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ initialData,
           {isUploading ? 'Uploading...' : 'NEXT'}
           {!isUploading && <span className="ml-2">→</span>}
         </button>
+        <div className="mt-4 text-center">
+        <p className="text-sm text-gray-600">
+        Already have a partner account?
+          <a onClick={() => navigate('/partner')} className="text-red-500 hover:underline ml-1 cursor-pointer">
+          Log in here
+          </a>
+        </p>
+      </div>
       </form>
     </div>
   );

@@ -65,7 +65,6 @@ const errorInterceptor = (error: any) => {
   // Skip 400 errors for password issues - these should not trigger logouts
   if (error.response?.status === 400 && 
       error.response?.data?.passwordError === true) {
-    console.log('Password verification failed, not logging out');
     return Promise.reject(error);
   }
 
@@ -75,7 +74,6 @@ const errorInterceptor = (error: any) => {
       !originalRequest._retry && 
       !originalRequest.url.includes('verify-token') &&
       !originalRequest.url.includes('update-profile')) {
-    console.log('Session expired, logging out');
     originalRequest._retry = true;
     sessionManager.clearSession();
     // toast.error('Session expired. Please login again.');

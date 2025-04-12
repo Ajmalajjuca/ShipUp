@@ -63,7 +63,6 @@ const PartnerLog: React.FC = () => {
         const response = await axios.post("http://localhost:3001/auth/login-otp", { email });
 
         if (response.data.success) {
-          console.log("OTP sent successfully:", response.data);
           
           dispatch(setEmailId(email))
           setStep("otp");
@@ -105,9 +104,7 @@ const PartnerLog: React.FC = () => {
       try {
         const response = await authService.verifyLoginOtp(email, otp);
 
-        if (response.success) {
-          console.log("OTP verified successfully:", response);
-          
+        if (response.success) {          
           dispatch(setEmailId(response.email));
 
           sessionManager.setDriverSession(response.token, {
@@ -191,7 +188,7 @@ const PartnerLog: React.FC = () => {
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-600">
           Don't have a partner account?
-          <a onClick={() => navigate('/register')} className="text-red-500 hover:underline ml-1">
+          <a onClick={() => navigate('/register')} className="text-red-500 hover:underline ml-1 cursor-pointer">
             Register here
           </a>
         </p>

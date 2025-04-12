@@ -192,7 +192,6 @@ export const authController = {
           `${process.env.PARTNER_SERVICE_URL}/drivers/${authUser.userId}`,
           
         )
-        console.log('driverResponse::',driverResponse.data.partner.status);
         
         if (driverResponse.data.partner && !driverResponse.data.partner.status) {
           res.status(403).json({
@@ -635,13 +634,26 @@ export const authController = {
   // Create temporary token for document uploads
   async createTempToken(req: Request, res: Response) {
     try {
-      console.log('Received request:', {
-        body: req.body,
-        headers: req.headers
-      });
+      if(!req.body.purpose){
+        const {userId,email,role} = req.body;
+        if (!userId || !email || !role) {
+          res.status(400).json({
+            success: false,
+            error: 'User ID, email, and role are required'
+          });
+          return
+        }
+       const token = authService.generateToken(userId, email, role);
+        res.status(200).json({
+          success: true,
+          token
+        });
+        return 
+      }
+
+
 
       if (!req.body || Object.keys(req.body).length === 0) {
-        console.log('Empty request body received');
          res.status(400).json({
           success: false,
           error: 'Request body is required'
@@ -652,7 +664,6 @@ export const authController = {
       const { purpose, role } = req.body;
 
       if (!purpose || !role) {
-        console.log('Missing required fields:', { purpose, role });
          res.status(400).json({
           success: false,
           error: 'Purpose and role are required'
@@ -661,7 +672,6 @@ export const authController = {
       }
 
       if (purpose !== 'document-upload' || role !== 'driver') {
-        console.log('Invalid purpose or role:', { purpose, role });
          res.status(400).json({
           success: false,
           error: 'Invalid purpose or role'
@@ -676,7 +686,6 @@ export const authController = {
         { expiresIn: '5m' }
       );
 
-      console.log('Token generated successfully');
        res.status(200).json({
         success: true,
         token

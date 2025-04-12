@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { sessionManager } from '../../../../../utils/sessionManager';
 import { toast } from 'react-hot-toast';
 import { driverService } from '../../../../../services/driver.service';
+import { confirmDialog } from '../../../../../utils/confirmDialog';
 
 interface PartnerRequest {
   partnerId: string;
@@ -34,7 +35,6 @@ const PartnerRequest: React.FC<PartnerRequestProps> = ({ onViewPartner }) => {
   const fetchRequests = async () => {
     try {
       const response = await driverService.getAllDrivers();
-      console.log('Fetched Partner Requests:', response);
       
       
       // Filter partners that are not fully verified
@@ -54,15 +54,23 @@ const PartnerRequest: React.FC<PartnerRequestProps> = ({ onViewPartner }) => {
   };
 
   const handleDelete = async (partnerId: string) => {
-    if (window.confirm('Are you sure you want to delete this partner request?')) {
-      try {
-        await driverService.deleteDriver(partnerId);
-        setRequests(requests.filter(request => request.partnerId !== partnerId));
-        toast.success('Partner request deleted successfully');
-      } catch (error) {
-        console.error('Error deleting partner:', error);
-        toast.error('Failed to delete partner request');
+    const confirmed = await confirmDialog(
+      'Are you sure you want to delete this partner request? This action cannot be undone.',
+      {
+        title: 'Delete Partner Request',
+        confirmText: 'Delete',
+        type: 'delete'
       }
+    );
+    if (!confirmed) return;
+    
+    try {
+      await driverService.deleteDriver(partnerId);
+      setRequests(requests.filter(request => request.partnerId !== partnerId));
+      toast.success('Partner request deleted successfully');
+    } catch (error) {
+      console.error('Error deleting partner:', error);
+      toast.error('Failed to delete partner request');
     }
   };
 
@@ -75,7 +83,6 @@ const PartnerRequest: React.FC<PartnerRequestProps> = ({ onViewPartner }) => {
     request.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     request.phone?.includes(searchTerm)
   );
-  console.log('Filtered Requests:', filteredRequests);
   
 
   if (loading) return <div className="text-center py-4">Loading...</div>;

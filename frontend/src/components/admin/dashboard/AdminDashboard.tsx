@@ -142,7 +142,6 @@ const AdminDashboard: React.FC = () => {
   const [selectedVerifiedPartnerId, setSelectedVerifiedPartnerId] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
   
   const handleLogout = () => {
     sessionManager.logout();

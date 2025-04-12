@@ -14,14 +14,12 @@ const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) 
         const { token, driverData } = sessionManager.getDriverSession();
         
         if (!token || !driverData) {
-          console.log('No partner session found');
           setIsAuthenticated(false);
           navigate('/partner', { replace: true });
           return;
         }
 
         if (driverData.role !== 'driver') {
-          console.log('Invalid role');
           sessionManager.clearDriverSession();
           toast.error('Invalid session. Please login again.');
           navigate('/partner', { replace: true });
@@ -31,7 +29,6 @@ const PrivatePartnerRoute: React.FC<{ children: JSX.Element }> = ({ children }) 
         const isValid = await sessionManager.verifyPartnerToken();
         
         if (!isValid) {
-          console.log('Invalid partner token');
           sessionManager.clearDriverSession();
           toast.error('Session expired. Please login again.');
           navigate('/partner', { replace: true });

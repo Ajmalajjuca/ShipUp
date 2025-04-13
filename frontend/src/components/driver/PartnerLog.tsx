@@ -71,6 +71,8 @@ const PartnerLog: React.FC = () => {
           setErrors({ email: response.data.message || "Failed to send OTP" });
         }
       } catch (error: any) {
+        console.log('Login error:', error.response);
+        
         if (error.response && error.response.status === 404) {
           setErrors({ email: "Email not found. This email is not registered as a delivery partner." });
         } else {

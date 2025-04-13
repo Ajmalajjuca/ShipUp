@@ -203,7 +203,7 @@ const PartnerReg = () => {
                 ((error as AxiosError)?.response?.data as { message?: string })?.message ||
                 'An error occurred while submitting your application. Please try again.'
             );
-            alert(`Error: ${error.response?.data?.error || 'Something went wrong!'}`);
+            toast.error(`Error: ${error.response?.data?.error || 'Something went wrong!'}`);
         } finally {
             setIsSubmitting(false);
         }

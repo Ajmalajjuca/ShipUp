@@ -44,6 +44,7 @@ const AdminLoginPage: React.FC = () => {
         toast.error("Access denied: Admins only");
       }
     } catch (error: any) {
+      
       toast.error(error.response?.data?.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);

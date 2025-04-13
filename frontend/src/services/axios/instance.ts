@@ -230,8 +230,21 @@ const errorInterceptor = async (error: any) => {
     responseData: error.response?.data
   });
 
+  // Skip error handling for login-related endpoints
+  const loginRelatedEndpoints = ['/auth/login', '/auth/register', '/auth/verify-otp','/auth/verify-login-otp'];
+  if (originalRequest?.url && loginRelatedEndpoints.some(endpoint => originalRequest.url.includes(endpoint))) {
+    console.log('Skip token refresh for login-related endpoint:', originalRequest.url);
+    return Promise.reject(error);
+  }
+
   // Skip 400 errors for password issues - these should not trigger logouts
   if (error.response?.status === 400 && 
+      error.response?.data?.passwordError === true) {
+    return Promise.reject(error);
+  }
+
+  // Also skip 401 errors for password issues
+  if (error.response?.status === 401 && 
       error.response?.data?.passwordError === true) {
     return Promise.reject(error);
   }
@@ -274,8 +287,8 @@ const errorInterceptor = async (error: any) => {
         // If refresh fails, clear session and redirect to login
         isRefreshing = false;
         sessionManager.clearSession();
-        toast.error('Session expired. Please login again....');
-        window.location.href = '/login';
+        toast.error('Session expired. Please login again...');
+        // window.location.href = '/login';
         return Promise.reject(error);
       }
     } catch (refreshError) {

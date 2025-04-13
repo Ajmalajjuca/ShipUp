@@ -218,15 +218,18 @@ export const authController = {
           });
           return;
         }
+        if (authUser.role === 'user') {
+          res.status(400).json({ success: false, error: 'Use password-based login for users' });
+          return;
+        }
       }
       catch(error){
-        console.error('Error fetching driver details:', error);
-      }
-
-      if (authUser.role === 'user') {
-        res.status(400).json({ success: false, error: 'Use password-based login for users' });
+        res.status(404).json({ success: false, error: (error as any).response?.data.error || 'Driver not found' });
+        // console.error('Error fetching driver details:', (error as any).response?.data.error);
         return;
       }
+
+      
 
       const otp = otpService.generateOtp();
       await otpService.storeOtp(email, otp);

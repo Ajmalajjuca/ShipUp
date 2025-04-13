@@ -31,8 +31,12 @@ const AdminLoginPage: React.FC = () => {
       });
 
       if (response.status === 200 && response.data.user.role === "admin") {
-        // Store session
-        sessionManager.setSession(response.data.user, response.data.token);
+        // Store session with refresh token
+        sessionManager.setSession(
+          response.data.user, 
+          response.data.token,
+          response.data.refreshToken
+        );
         navigate("/admin/dashboard");
         toast.success("Login successful!");
       } else {

@@ -107,10 +107,12 @@ const PartnerLog: React.FC = () => {
         if (response.success) {          
           dispatch(setEmailId(response.email));
 
+          // Include refresh token in driver session
           sessionManager.setDriverSession(response.token, {
             email,
             partnerId: response.partnerId,
-            role: 'driver'
+            role: 'driver',
+            refreshToken: response.refreshToken
           });
 
           setStep("success");

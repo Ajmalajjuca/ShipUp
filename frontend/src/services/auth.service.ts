@@ -41,8 +41,19 @@ export const authService = {
     const response = await authApi.post('/auth/send-otp', { email });
     return response.data;
   },
-  verifyLoginOtp: async ( email: string, otp: string ) => {
-    const response = await authApi.post('/auth/verify-login-otp', {  email, otp });
+  
+  verifyLoginOtp: async (email: string, otp: string) => {
+    const response = await authApi.post('/auth/verify-login-otp', { email, otp });
+    return response.data;
+  },
+  
+  refreshToken: async (refreshToken: string) => {
+    const response = await authApi.post('/auth/refresh-token', { refreshToken });
+    return response.data;
+  },
+  
+  logout: async (userId: string) => {
+    const response = await authApi.post('/auth/logout', { userId });
     return response.data;
   }
 }; 

@@ -231,7 +231,8 @@ const DeliveryPersonAvatar: React.FC<{
   // Log data to help with debugging
   
   // Extract profile image URL or default to null
-  const profileImage = driverData?.profilePicturePath || driverData?.profileImage || null;
+  const profileImage = driverData?.profilePicturePath
+  
 
   return (
   <div className="relative bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center cursor-pointer hover:shadow-lg transition-all duration-300" onClick={onClick}>
@@ -342,6 +343,7 @@ const DeliveryPartnerDashboard: React.FC = () => {
       // Check if we already have driver data
       if (!driver.driverData) {
         const response = await partnerApi.get(`/api/drivers/by-email/${Email}`);
+        
         dispatch(setDriverData({ 
           driverData: response.data.driver,
           token: response.data.token || driver.token

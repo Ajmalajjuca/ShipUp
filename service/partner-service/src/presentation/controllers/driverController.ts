@@ -471,6 +471,8 @@ export const partnerController = {
       const { email } = req.params;
       
       const partner = await partnerRepository.findByEmail(email);
+      console.log('Partner==>:', partner);
+      
       
       if (!partner) {
         res.status(404).json({
@@ -523,7 +525,7 @@ export const partnerController = {
         updateData
       );
       
-
+      
       if (!updatedPartner) {
          res.status(404).json({
           success: false,

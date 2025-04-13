@@ -105,22 +105,22 @@ export class PartnerRepositoryImpl implements PartnerRepository {
       return {
         ...partnerData,
         profilePicturePath: partnerData.profilePicturePath 
-          ? `${process.env.API_URL}/uploads/${partnerData.profilePicturePath}`
+          ? `${partnerData.profilePicturePath}`
           : null,
         aadharPath: partnerData.aadharPath 
-          ? `${process.env.API_URL}/uploads/documents/aadhar/${partnerData.aadharPath}`
+          ? `${partnerData.aadharPath}`
           : null,
         panPath: partnerData.panPath 
-          ? `${process.env.API_URL}/uploads/documents/pan/${partnerData.panPath}`
+          ? `${partnerData.panPath}`
           : null,
         licensePath: partnerData.licensePath 
-          ? `${process.env.API_URL}/uploads/documents/license/${partnerData.licensePath}`
+          ? `${partnerData.licensePath}`
           : null,
         insuranceDocPath: partnerData.insuranceDocPath 
-          ? `${process.env.API_URL}/uploads/documents/insurance/${partnerData.insuranceDocPath}`
+          ? `${partnerData.insuranceDocPath}`
           : null,
         pollutionDocPath: partnerData.pollutionDocPath 
-          ? `${process.env.API_URL}/uploads/documents/pollution/${partnerData.pollutionDocPath}`
+          ? `${partnerData.pollutionDocPath}`
           : null,
         vehicleDocuments: partnerData.vehicleDocuments || null,
       };

@@ -15,15 +15,41 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
     if (!token) {
         res.status(401).json({ error: 'Access denied. No token provided.' });
-        return;  // Add return to stop execution
+        return;
     }
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
         req.user = decoded;
-        next();  // Continue to next middleware
+        next();
     } catch (error) {
+        if (error instanceof jwt.TokenExpiredError) {
+            res.status(401).json({ error: 'Token expired', tokenExpired: true });
+            return;
+        }
         res.status(403).json({ error: 'Invalid token.' });
-        return;  // Add return to stop execution
+        return;
+    }
+};
+
+export const validateRefreshToken = (req: Request, res: Response, next: NextFunction): void => {
+    const refreshToken = req.body.refreshToken;
+
+    if (!refreshToken) {
+        res.status(401).json({ error: 'Refresh token is required' });
+        return;
+    }
+
+    try {
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-key');
+        req.user = decoded;
+        next();
+    } catch (error) {
+        if (error instanceof jwt.TokenExpiredError) {
+            res.status(401).json({ error: 'Refresh token expired, please login again' });
+            return;
+        }
+        res.status(403).json({ error: 'Invalid refresh token' });
+        return;
     }
 };

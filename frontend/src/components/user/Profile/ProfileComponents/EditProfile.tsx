@@ -151,7 +151,7 @@ const EditProfile: React.FC = () => {
 
       if (response.success) {
         const updatedUser = { ...user, ...response.user };
-        sessionManager.setSession(updatedUser, sessionManager.getSession().token!);
+        sessionManager.setSession(updatedUser, sessionManager.getSession().token!, sessionManager.getSession().refreshToken!);
         dispatch(loginSuccess(updatedUser));
         toast.success('Profile updated successfully');
         navigate('/profile');

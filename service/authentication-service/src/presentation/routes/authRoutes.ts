@@ -1,8 +1,7 @@
 import express from 'express';
 import { authController } from '../controllers/authController2';
 import multer from 'multer';
-import jwt from 'jsonwebtoken';
-import { Request, Response } from 'express';
+import { validateRefreshToken } from '../middlewares/authMiddleware';
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
@@ -18,7 +17,9 @@ router.post('/verify-otp', authController.verifyOtp);
 router.post('/forgot-password', authController.forgotPassword);
 router.delete('/:userId', authController.delete);
 
-// Token verification routes
+// Token refresh and verification routes
+router.post('/refresh-token', authController.refreshToken);
+router.post('/logout', authController.logout);
 router.get('/verify-token', authController.verifyToken);
 router.post('/verify-partner-token', authController.verifyPartnerToken);
 router.post('/verify-password', authController.verifyPassword);
@@ -32,7 +33,5 @@ router.put('/update-email/:partnerId', authController.updateEmail);
 
 // Temp token for document uploads
 router.post('/temp-token', authController.createTempToken);
-
-router.post('/verify-partner-token', authController.verifyPartnerToken);
 
 export default router;

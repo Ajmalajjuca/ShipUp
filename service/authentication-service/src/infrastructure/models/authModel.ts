@@ -6,6 +6,8 @@ const authSchema = new mongoose.Schema<Auth>({
   email: { type: String, required: true, unique: true },
   password: { type: String, },
   role: { type: String, required: true },
+  refreshToken: { type: String, default: null },
+  refreshTokenExpiry: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

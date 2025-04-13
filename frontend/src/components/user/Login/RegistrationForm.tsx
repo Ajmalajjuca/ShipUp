@@ -204,14 +204,13 @@ const RegistrationForm: React.FC = () => {
         ? authService.register(dataToSend)
         : authService.login(dataToSend));
 
-      const { user, token } = response;
-
       if (initialStage === 'Sign up') {
+        const { user, token } = response;
         sessionManager.setTempSession(user, token);
-        
         navigate('/otp-verification', { state: { email: formData.email } });
       } else {
-        sessionManager.setSession(user, token);
+        const { user, token, refreshToken } = response;
+        sessionManager.setSession(user, token, refreshToken);
         navigate('/');
       }
     } catch (error: any) {
@@ -227,11 +226,11 @@ const RegistrationForm: React.FC = () => {
       dispatch(loginStart());
       const response = await authService.googleAuth(credentialResponse.credential);
       
-      const { user, token } = response;
+      const { user, token, refreshToken } = response;
       
       if (user && token) {
-        sessionManager.setSession(user, token);
-        dispatch(loginSuccess(user));
+        sessionManager.setSession(user, token, refreshToken);
+        dispatch(loginSuccess({ user, token, refreshToken }));
         toast.success('Successfully logged in with Google!');
         navigate('/');
       }

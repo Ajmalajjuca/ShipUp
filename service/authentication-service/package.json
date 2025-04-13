@@ -24,6 +24,7 @@
     "@types/passport": "^1.0.17",
     "axios": "^1.8.3",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
     "cookie-session": "^2.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

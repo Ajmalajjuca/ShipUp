@@ -2,24 +2,35 @@ import { store } from '../Redux/store';
 import { loginSuccess, logout } from '../Redux/slices/authSlice';
 import { setEmailId, setDriverData, clearDriverData } from '../Redux/slices/driverSlice';
 import axios from 'axios';
+import { authService } from '../services/auth.service';
 
 export const sessionManager = {
-  setSession(user: any, token: string) {
+  setSession(user: any, token: string, refreshToken: string) {
     localStorage.setItem('authToken', token);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('userData', JSON.stringify(user));
-    store.dispatch(loginSuccess({ user, token }));
+    store.dispatch(loginSuccess({ user, token, refreshToken }));
   },
 
   getSession() {
     const token = localStorage.getItem('authToken');
+    const refreshToken = localStorage.getItem('refreshToken');
     const user = JSON.parse(localStorage.getItem('userData') || 'null');
-    return { token, user };
+    return { token, refreshToken, user };
   },
 
   clearSession() {
     try {
+      // Try to logout from server if user ID is available
+      const userData = JSON.parse(localStorage.getItem('userData') || 'null');
+      if (userData?.userId) {
+        // Don't wait for this to complete
+        authService.logout(userData.userId).catch(err => console.error('Logout error:', err));
+      }
+      
       // Clear all auth-related storage
       localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('userData');
       sessionStorage.clear();
       
@@ -54,6 +65,136 @@ export const sessionManager = {
     sessionStorage.removeItem('pendingUser');
   },
 
+  async refreshAccessToken() {
+    const { refreshToken, user } = this.getSession();
+    
+    if (!refreshToken || !user) {
+      console.warn('No refresh token or user found in session');
+      // Don't clear the session here - let the error handler decide
+      return null;
+    }
+    
+    try {
+      console.log('Attempting to refresh access token with refresh token:', refreshToken.substring(0, 15) + '...');
+      
+      const response = await authService.refreshToken(refreshToken);
+      
+      if (response.success) {
+        console.log('Access token refreshed successfully');
+        console.log('New token expiry details:', {
+          userId: response.user.userId,
+          email: response.user.email,
+          role: response.user.role
+        });
+        
+        // Store the new tokens
+        this.setSession(
+          response.user, 
+          response.token, 
+          response.refreshToken
+        );
+        return response.token;
+      } else {
+        console.warn('Token refresh failed:', response.error || 'Unknown error');
+        
+        // Only clear session for specific error types
+        if (response.errorCode === 'REFRESH_TOKEN_EXPIRED' || 
+            response.errorCode === 'REFRESH_TOKEN_INVALID' ||
+            response.errorCode === 'REFRESH_TOKEN_MISMATCH') {
+          console.log('Clearing session due to invalid refresh token');
+          this.clearSession();
+        }
+        return null;
+      }
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
+      
+      // Check if it's a network error - if so, don't clear session yet
+      if (axios.isAxiosError(error) && !error.response) {
+        console.warn('Network error during token refresh, keeping session');
+        return null;
+      }
+      
+      // Check for specific HTTP status codes
+      if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status;
+        // Only clear session for auth errors
+        if (status === 401 || status === 403) {
+          console.log(`Clearing session due to ${status} response`);
+          this.clearSession();
+        }
+        return null;
+      }
+      
+      // For other errors, keep the session intact
+      return null;
+    }
+  },
+
+  async refreshDriverToken() {
+    const { driverData, token } = this.getDriverSession();
+    
+    if (!driverData?.refreshToken) {
+      console.warn('No refresh token found in driver session');
+      return null;
+    }
+    
+    try {
+      console.log('Attempting to refresh driver token with refresh token:', 
+        driverData.refreshToken.substring(0, 15) + '...');
+      
+      const response = await authService.refreshToken(driverData.refreshToken);
+      
+      if (response.success) {
+        console.log('Driver token refreshed successfully');
+        console.log('New driver token expiry details:', {
+          userId: response.user.userId,
+          email: response.user.email,
+          role: response.user.role
+        });
+        
+        this.setDriverSession(response.token, {
+          ...driverData,
+          refreshToken: response.refreshToken
+        });
+        return response.token;
+      } else {
+        console.warn('Driver token refresh failed:', response.error || 'Unknown error');
+        
+        // Only clear session for specific error types
+        if (response.errorCode === 'REFRESH_TOKEN_EXPIRED' || 
+            response.errorCode === 'REFRESH_TOKEN_INVALID' ||
+            response.errorCode === 'REFRESH_TOKEN_MISMATCH') {
+          console.log('Clearing driver session due to invalid refresh token');
+          this.clearDriverSession();
+        }
+        return null;
+      }
+    } catch (error) {
+      console.error('Failed to refresh driver token:', error);
+      
+      // Check if it's a network error - if so, don't clear session yet
+      if (axios.isAxiosError(error) && !error.response) {
+        console.warn('Network error during driver token refresh, keeping session');
+        return null;
+      }
+      
+      // Check for specific HTTP status codes
+      if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status;
+        // Only clear session for auth errors
+        if (status === 401 || status === 403) {
+          console.log(`Clearing driver session due to ${status} response`);
+          this.clearDriverSession();
+        }
+        return null;
+      }
+      
+      // For other errors, keep the session intact
+      return null;
+    }
+  },
+
   async verifyToken() {
     const { token, user } = this.getSession();
     
@@ -69,8 +210,9 @@ export const sessionManager = {
       });
       
       if (!authResponse.data.valid) {
-        this.clearSession();
-        return false;
+        // Try to refresh the token
+        const newToken = await this.refreshAccessToken();
+        return !!newToken;
       }
 
       // Then get latest user data from user service
@@ -82,16 +224,21 @@ export const sessionManager = {
       });
 
       if (userResponse.data.success) {
+        // Get the current refresh token
+        const { refreshToken } = this.getSession();
+        
         // Update session with latest user data
-        this.setSession({ ...user, ...userResponse.data.user }, token);
+        this.setSession({ ...user, ...userResponse.data.user }, token, refreshToken || '');
         return true;
       }
 
       return false;
     } catch (error) {
       console.error('Token verification failed:', error);
-      this.clearSession();
-      return false;
+      
+      // Try to refresh the token
+      const newToken = await this.refreshAccessToken();
+      return !!newToken;
     }
   },
 
@@ -113,8 +260,9 @@ export const sessionManager = {
       );
       
       if (!authResponse.data.success) {
-        this.clearDriverSession();
-        return false;
+        // Try to refresh the token
+        const newToken = await this.refreshDriverToken();
+        return !!newToken;
       }
 
       // Check the partner's data in the partner service
@@ -137,8 +285,10 @@ export const sessionManager = {
       return false;
     } catch (error) {
       console.error('Partner token verification failed:', error);
-      this.clearDriverSession();
-      return false;
+      
+      // Try to refresh the token
+      const newToken = await this.refreshDriverToken();
+      return !!newToken;
     }
   },
 
@@ -194,11 +344,11 @@ window.addEventListener('storage', (e) => {
     store.dispatch(logout());
     window.location.href = '/login';
   }
-}); 
+});
 
 window.addEventListener('storage', (e) => {
-  if (e.key === 'authToken' && !e.newValue) {
-    store.dispatch(logout());
-    window.location.href = '/admin';
+  if (e.key === 'driverToken' && !e.newValue) {
+    store.dispatch(clearDriverData());
+    window.location.href = '/partner/login';
   }
 });

@@ -49,7 +49,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
           ) : (
             <div className="w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-teal-500 flex items-center justify-center border-4 border-white shadow-md">
               <span className="text-white text-xl font-bold">
-                {userData.fullName.split(' ').map(n => n[0]).join('')}
+                {userData?.fullName?.split(' ').map(n => n[0]).join('')}
               </span>
             </div>
           )}

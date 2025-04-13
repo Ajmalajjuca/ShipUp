@@ -122,6 +122,22 @@ export const authController = {
         });
         return;
       }
+      
+      // Generate refresh token
+      const refreshToken = authService.generateRefreshToken(
+        result.authUser.userId, 
+        result.authUser.email, 
+        result.authUser.role
+      );
+      
+      // Calculate refresh token expiry
+      const refreshTokenExpiry = authService.getRefreshTokenExpiry();
+      
+      // Save refresh token to the database
+      await authRepository.update(result.authUser.userId, {
+        refreshToken,
+        refreshTokenExpiry
+      });
 
       // Get user details from user service
       try {
@@ -151,7 +167,8 @@ export const authController = {
           success: true,
           message: 'Login successful',
           user: userData,
-          token: result.token
+          token: result.token,
+          refreshToken: refreshToken
         });
       } catch (error) {
         console.error('Error fetching user details:', error);
@@ -159,7 +176,8 @@ export const authController = {
           success: true,
           message: 'Login successful',
           user: result.authUser,
-          token: result.token
+          token: result.token,
+          refreshToken: refreshToken
         });
       }
     } catch (error) {
@@ -258,10 +276,23 @@ export const authController = {
       // Generate token
       const token = authService.generateToken(partner.userId, email, 'driver');
       
+      // Generate refresh token
+      const refreshToken = authService.generateRefreshToken(partner.userId, email, 'driver');
+      
+      // Calculate refresh token expiry
+      const refreshTokenExpiry = authService.getRefreshTokenExpiry();
+      
+      // Save refresh token to the database
+      await authRepository.update(partner.userId, {
+        refreshToken,
+        refreshTokenExpiry
+      });
+      
       res.status(200).json({
         success: true,
         message: "OTP verified successfully",
         token,
+        refreshToken,
         partnerId: partner.userId,
         email: partner.email,
         role: 'driver'
@@ -397,29 +428,30 @@ export const authController = {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader) {
-        res.status(401).json({ valid: false, message: 'No token provided' });
-        return 
+         res.status(401).json({ valid: false, message: 'No token provided' });
+         return
       }
 
       const token = authHeader.split(' ')[1]; // Remove 'Bearer ' prefix
       if (!token) {
-        res.status(401).json({ valid: false, message: 'Invalid token format' });
-        return 
+         res.status(401).json({ valid: false, message: 'Invalid token format' });
+         return
       }
 
       try {
         // Verify token using your JWT service or auth service
         const decoded = await authService.verifyToken(token);
-        res.status(200).json({ valid: true, user: decoded });
-        return 
+         res.status(200).json({ valid: true, user: decoded });
+         return
       } catch (error) {
-        res.status(401).json({ valid: false, message: 'Invalid token' });
-        return 
+        console.error('Token verification failed:', error);
+         res.status(401).json({ valid: false, message: 'Invalid token' });
+         return
       }
     } catch (error) {
       console.error('Token verification error:', error);
-      res.status(500).json({ valid: false, message: 'Internal server error' });
-      return 
+       res.status(500).json({ valid: false, message: 'Internal server error' });
+       return
     }
   },
 
@@ -487,8 +519,6 @@ export const authController = {
     const token = req.headers.authorization?.split(' ')[1];
 
     try {
-      
-      
       const { email } = req.body;
 
       if (!token || !email) {
@@ -500,26 +530,38 @@ export const authController = {
       }
 
       // Verify the token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-      
-      // Check if the token belongs to the partner
-      if (decoded.email !== email || decoded.role !== 'driver') {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        
+        // Check if the token belongs to the partner
+        if (decoded.email !== email || decoded.role !== 'driver') {
+           res.status(401).json({
+            success: false,
+            message: 'Invalid token'
+          });
+          return
+        }
+
+         res.json({
+          success: true,
+          message: 'Token is valid'
+        });
+        return
+      } catch (jwtError) {
+        console.error('JWT verification error:', jwtError);
          res.status(401).json({
           success: false,
           message: 'Invalid token'
         });
         return
       }
-
-      res.json({
-        success: true,
-        message: 'Token is valid'
-      });
     } catch (error) {
-      res.status(401).json({
+      console.error('Partner token verification error:', error);
+       res.status(500).json({
         success: false,
-        message: 'Invalid token'
+        message: 'Internal server error'
       });
+      return
     }
   },
 
@@ -528,10 +570,9 @@ export const authController = {
       const { credential } = req.body;
       
       if (!credential) {
-        res.status(400).json({ success: false, error: "Google token is required" });
-        return;
+         res.status(400).json({ success: false, error: "Google token is required" });
+         return
       }
-
 
       // Verify the Google token
       try {
@@ -543,8 +584,8 @@ export const authController = {
         const payload = ticket.getPayload();
         
         if (!payload || !payload.email) {
-          res.status(400).json({ success: false, error: "Invalid token" });
-          return;
+           res.status(400).json({ success: false, error: "Invalid token" });
+           return
         }
 
         const result = await googleAuthUser.execute({
@@ -554,27 +595,49 @@ export const authController = {
         });
 
         if (!result.success) {
-          res.status(400).json(result);
-          return;
+           res.status(400).json(result);
+           return
         }
 
-        res.status(200).json(result);
+        // Generate refresh token
+        const refreshToken = authService.generateRefreshToken(
+          result.user.userId, 
+          result.user.email, 
+          result.user.role
+        );
+        
+        // Calculate refresh token expiry
+        const refreshTokenExpiry = authService.getRefreshTokenExpiry();
+        
+        // Save refresh token to the database
+        await authRepository.update(result.user.userId, {
+          refreshToken,
+          refreshTokenExpiry
+        });
+
+        // Return successful response with refresh token
+         res.status(200).json({
+          ...result,
+          refreshToken
+        });
+        return
       } catch (verifyError: any) {
         console.error('Token verification error:', {
           error: verifyError.message,
           clientId: process.env.GOOGLE_CLIENT_ID,
           stack: verifyError.stack
         });
-        res.status(401).json({ 
+         res.status(401).json({ 
           success: false, 
           error: "Token verification failed",
           details: verifyError.message
         });
-        return;
+        return
       }
     } catch (error: any) {
       console.error('Google authentication error:', error);
-      res.status(400).json({ success: false, error: "Authentication failed" });
+       res.status(400).json({ success: false, error: "Authentication failed" });
+       return
     }
   },
 
@@ -698,6 +761,146 @@ export const authController = {
         error: 'Internal server error'
       });
       return
+    }
+  },
+
+  // Refresh token endpoint
+  async refreshToken(req: Request, res: Response) {
+    try {
+      const { refreshToken } = req.body;
+      
+      console.log('Refresh token request received');
+      
+      if (!refreshToken) {
+        console.log('Refresh token missing in request');
+         res.status(400).json({ 
+          success: false, 
+          error: 'Refresh token is required',
+          errorCode: 'REFRESH_TOKEN_MISSING'
+        });
+        return
+      }
+      
+      // Verify the refresh token
+      let decoded;
+      try {
+        decoded = await authService.verifyRefreshToken(refreshToken);
+        console.log('Refresh token verified for user:', decoded.userId);
+      } catch (error) {
+        console.error('Refresh token verification error:', error);
+         res.status(401).json({ 
+          success: false, 
+          error: 'Invalid refresh token',
+          errorCode: 'REFRESH_TOKEN_INVALID'
+        });
+        return
+      }
+      
+      // Find the user in the database
+      const user = await authRepository.findById(decoded.userId);
+      
+      if (!user) {
+        console.log('User not found for refresh token:', decoded.userId);
+         res.status(404).json({ 
+          success: false, 
+          error: 'User not found',
+          errorCode: 'USER_NOT_FOUND'
+        });
+        return
+      }
+      
+      // Check if the refresh token matches what's stored in the database
+      if (!user.refreshToken || user.refreshToken !== refreshToken) {
+        console.log('Refresh token mismatch for user:', user.userId);
+        console.log('Stored token:', user.refreshToken ? user.refreshToken.substring(0, 15) + '...' : 'none');
+        console.log('Received token:', refreshToken.substring(0, 15) + '...');
+        
+         res.status(401).json({ 
+          success: false, 
+          error: 'Invalid refresh token - token mismatch',
+          errorCode: 'REFRESH_TOKEN_MISMATCH',
+          tokenMismatch: true
+        });
+        return
+      }
+      
+      // Check if the refresh token is expired in the database
+      if (user.refreshTokenExpiry && new Date(user.refreshTokenExpiry) < new Date()) {
+        console.log('Refresh token expired for user:', user.userId);
+        console.log('Expiry:', user.refreshTokenExpiry);
+        console.log('Current time:', new Date());
+        
+         res.status(401).json({ 
+          success: false, 
+          error: 'Refresh token expired',
+          errorCode: 'REFRESH_TOKEN_EXPIRED',
+          tokenExpired: true
+        });
+        return
+      }
+      
+      console.log('Generating new tokens for user:', user.userId);
+      
+      // Generate new tokens
+      const newAccessToken = authService.generateToken(user.userId, user.email, user.role);
+      const newRefreshToken = authService.generateRefreshToken(user.userId, user.email, user.role);
+      const refreshTokenExpiry = authService.getRefreshTokenExpiry();
+      
+      // Update the refresh token in the database
+      await authRepository.update(user.userId, { 
+        refreshToken: newRefreshToken,
+        refreshTokenExpiry
+      });
+      
+      console.log('Tokens refreshed successfully for user:', user.userId);
+      
+       res.status(200).json({
+        success: true,
+        token: newAccessToken,
+        refreshToken: newRefreshToken,
+        user: {
+          userId: user.userId,
+          email: user.email,
+          role: user.role
+        }
+      });
+      return
+    } catch (error) {
+      console.error('Refresh token error:', error);
+       res.status(500).json({ 
+        success: false, 
+        error: 'Internal server error',
+        errorCode: 'SERVER_ERROR'
+      });
+      return
+    }
+  },
+
+  // Logout endpoint
+  async logout(req: Request, res: Response) {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+         res.status(400).json({ success: false, error: 'User ID is required' });
+         return
+      }
+      
+      // Update the user record to clear the refresh token
+      await authRepository.update(userId, {
+        refreshToken: undefined,
+        refreshTokenExpiry: undefined
+      });
+      
+       res.status(200).json({
+        success: true,
+        message: 'Logged out successfully'
+      });
+      return
+    } catch (error) {
+      console.error('Logout error:', error);
+       res.status(500).json({ success: false, error: 'Internal server error' });
+       return
     }
   },
 

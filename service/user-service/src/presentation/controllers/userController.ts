@@ -3,157 +3,360 @@ import { CreateUser } from '../../domain/use-cases/createUser';
 import { GetUser } from '../../domain/use-cases/getUser';
 import { UpdateUser } from '../../domain/use-cases/updateUser';
 import { DeleteUser } from '../../domain/use-cases/deleteUser';
-import { UserRepositoryImpl } from '../../infrastructure/repositories/userRepositoryImpl';
 import { UserRepository } from '../../domain/repositories/userRepository';
-import bcrypt from 'bcrypt';
-import { authService } from '../../infrastructure/services/authService';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import jwt from 'jsonwebtoken';
+import { ResponseHandler } from '../utils/responseHandler';
+import { ErrorMessage } from '../../types/enums/ErrorMessage';
+import { StatusCode } from '../../types/enums/StatusCode';
+import { ErrorCode } from '../../types/enums/ErrorCode';
+import { s3Upload } from '../../infrastructure/config/s3Config';
+import validator from 'validator';
+import {
+  CreateUserRequest,
+  UpdateUserRequest,
+  UpdateUserStatusRequest,
+  UpdateProfileRequest,
+  GetUserByEmailRequest
+} from '../../types/interfaces/requests';
+import {
+  UserResponse,
+  UsersResponse,
+  UpdateProfileResponse,
+  DeleteUserResponse,
+  UserStatusResponse
+} from '../../types/interfaces/responses';
 
-const userRepository = new UserRepositoryImpl();
-const createUser = new CreateUser(userRepository);
-const getUser = new GetUser(userRepository);
-const updateUser = new UpdateUser(userRepository);
-const deleteUser = new DeleteUser(userRepository);
+export class UserController {
+  constructor(
+    private userRepository: UserRepository,
+    private createUserUseCase: CreateUser,
+    private getUserUseCase: GetUser,
+    private updateUserUseCase: UpdateUser,
+    private deleteUserUseCase: DeleteUser
+  ) {}
 
-const API_URL = process.env.API_URL || 'http://localhost:3002';
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
-
-export const userController = {
-  async create(req: Request, res: Response) {
+  async create(req: Request, res: Response): Promise<void> {
     try {
-      const { userId, fullName, phone, email } = req.body;
+      const { userId, fullName, phone, email } = req.body as CreateUserRequest;
+
+      // Validate required fields
+      if (!userId || !fullName || !email) {
+        ResponseHandler.validationError(res, ErrorMessage.MISSING_REQUIRED_FIELDS);
+        return;
+      }
+
+      // Validate email using validator
+      if (!validator.isEmail(email)) {
+        ResponseHandler.validationError(res, ErrorMessage.INVALID_EMAIL_FORMAT);
+        return;
+      }
+
+      // Validate phone format if provided
+      if (phone && !this.validatePhoneNumber(phone)) {
+        ResponseHandler.validationError(res, ErrorMessage.INVALID_PHONE_FORMAT);
+        return;
+      }
+
+      const result = await this.createUserUseCase.execute({ userId, fullName, phone, email });
       
-
-      if (!userId || !fullName  || !email) {
-        res.status(400).json({
-          success: false,
-          error: 'Missing required fields: userId, fullName, phone, and email are required'
+      if (result.success) {
+        ResponseHandler.created(res, {
+          message: ErrorMessage.USER_CREATED,
+          user: result.user
         });
-        return
+      } else {
+        ResponseHandler.error(
+          res,
+          result.error || ErrorMessage.INTERNAL_SERVER_ERROR,
+          StatusCode.BAD_REQUEST
+        );
       }
-
-      if(phone){
-
-        const phoneRegex = /^(?:\+91)?[6-9]\d{9}$/;
-        if (!phoneRegex.test(phone)) {
-          res.status(400).json({ success: false, error: 'Invalid phone number format' });
-          return
-        }
-      }
-
-      const result = await createUser.execute({ userId, fullName, phone, email });
-      res.status(result.success ? 201 : 400).json(result);
-      return
     } catch (error) {
-      console.error('Create user error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
-      return
+      ResponseHandler.handleError(res, error);
     }
-  },
+  }
 
-  async get(req: Request, res: Response) {
+  async get(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
       
-      const user = await userRepository.findById(userId);
+      if (!userId) {
+        ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
+        return;
+      }
+
+      const user = await this.userRepository.findById(userId);
       
       if (!user) {
-        res.status(404).json({ success: false, error: 'User not found' });
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
         return;
       }
 
       // Add full URL for profile image
       const userData = {
         ...user,
-        profileImage: user.profileImage 
-          ? `${user.profileImage}`
-          : null
+        profileImage: user.profileImage ? `${user.profileImage}` : undefined
       };
 
-      res.status(200).json({ success: true, user: userData });
-    } catch (error) {
-      console.error('Get user error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-  },
+      const response: UserResponse = {
+        success: true,
+        user: userData
+      };
 
-  async update(req: Request, res: Response) {
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  async update(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
-      const updateData = req.body;
-
-      if (!userId) {
-        res.status(400).json({ success: false, error: 'User ID is required' });
-        return
-      }
-
-      const result = await updateUser.execute(userId, updateData);
-      res.status(result.success ? 200 : 404).json(result);
-      return
-    } catch (error) {
-      console.error('Update user error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
-      return
-    }
-  },
-
-  async delete(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      if (!userId) {
-        res.status(400).json({ success: false, error: 'User ID is required' });
-        return
-      }
-
-      const result = await deleteUser.execute(userId);
-      res.status(result.success ? 200 : 404).json(result);
-      return
-    } catch (error) {
-      console.error('Delete user error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
-      return
-    }
-  },
-
-
-  async updateProfile(req: Request, res: Response) {
-    try {
-
+      const updateData = req.body as UpdateUserRequest;
       
+      if (!userId) {
+        ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
+        return;
+      }
+
+      // Validate phone format if provided
+      if (updateData.phone && !this.validatePhoneNumber(updateData.phone)) {
+        ResponseHandler.validationError(res, ErrorMessage.INVALID_PHONE_FORMAT);
+        return;
+      }
+
+      const result = await this.updateUserUseCase.execute(userId, updateData);
+      
+      if (result.success) {
+        ResponseHandler.success(res, {
+          message: ErrorMessage.USER_UPDATED,
+          user: result.user
+        });
+      } else {
+        if (result.error === 'User not found') {
+          ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        } else {
+          ResponseHandler.error(
+            res,
+            result.error || ErrorMessage.INTERNAL_SERVER_ERROR,
+            StatusCode.BAD_REQUEST
+          );
+        }
+      }
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  async delete(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
+        return;
+      }
+
+      const result = await this.deleteUserUseCase.execute(userId);
+      
+      if (result.success) {
+        const response: DeleteUserResponse = {
+          success: true,
+          message: ErrorMessage.USER_DELETED,
+          userId
+        };
+        
+        ResponseHandler.success(res, response);
+      } else {
+        if (result.error === 'User not found') {
+          ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        } else {
+          ResponseHandler.error(
+            res,
+            result.error || ErrorMessage.INTERNAL_SERVER_ERROR,
+            StatusCode.BAD_REQUEST
+          );
+        }
+      }
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+  
+  async s3Upload(req: Request, res: Response): Promise<void> {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        ResponseHandler.unauthorized(res, ErrorMessage.AUTH_HEADER_REQUIRED, ErrorCode.AUTH_HEADER_REQUIRED);
+        return;
+      }
+
+      const token = authHeader.split(' ')[1];
+      if (!token) {
+        ResponseHandler.unauthorized(res, 'Invalid authorization format', ErrorCode.INVALID_TOKEN);
+        return;
+      }
+
+      try {
+        // Verify the token
+        const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+        const decoded = jwt.verify(token, jwtSecret) as any;
+        
+        // Check if it's a temporary token specifically for document uploads
+        const isTemporaryUploadToken = decoded.purpose === 'document-upload' && decoded.role === 'driver';
+        
+        // If not a temporary token or authenticated user, continue with the upload
+        if (!isTemporaryUploadToken && !decoded.userId) {
+          ResponseHandler.unauthorized(res, 'Invalid token for this operation', ErrorCode.INVALID_TOKEN);
+          return;
+        }
+        
+        // Validate upload type
+        const fileType = req.query.type as string;
+        if (!fileType || !['profile', 'document', 'license', 'idproof'].includes(fileType)) {
+          ResponseHandler.validationError(res, 'Invalid file type specified');
+          return;
+        }
+        
+        // Determine which field to use based on the type parameter
+        const fieldName = fileType === 'profile' ? 'profileImage' : 'file';
+        
+        // Process the upload with S3
+        s3Upload.single(fieldName)(req, res, (err) => {
+          if (err) {
+            ResponseHandler.error(
+              res, 
+              'Error uploading file: ' + err.message, 
+              StatusCode.BAD_REQUEST,
+              ErrorCode.FILE_UPLOAD_ERROR
+            );
+            return;
+          }
+          
+          if (!req.file) {
+            ResponseHandler.validationError(res, 'No file uploaded');
+            return;
+          }
+          
+          const s3File = req.file as Express.MulterS3.File;
+          
+          // Validate file size (max 5MB)
+          const maxSize = 5 * 1024 * 1024; // 5MB
+          if (s3File.size > maxSize) {
+            ResponseHandler.validationError(res, 'File size exceeds the 5MB limit', { size: s3File.size });
+            return;
+          }
+          
+          // Validate file type
+          const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+          if (!allowedMimeTypes.includes(s3File.mimetype)) {
+            ResponseHandler.validationError(res, 'Invalid file format', { mimetype: s3File.mimetype });
+            return;
+          }
+
+          ResponseHandler.success(res, {
+            message: 'File uploaded successfully',
+            fileUrl: s3File.location,
+            fileType: fieldName === 'profileImage' ? 'profile' : fileType,
+            fileName: s3File.key
+          });
+        });
+        
+      } catch (error: any) {
+        if (error.name === 'TokenExpiredError') {
+          ResponseHandler.unauthorized(res, 'Token has expired', ErrorCode.TOKEN_EXPIRED);
+        } else {
+          ResponseHandler.unauthorized(res, 'Invalid token', ErrorCode.INVALID_TOKEN);
+        }
+        return;
+      }
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+  
+  async updateProfileImage(req: Request, res: Response): Promise<void> {
+    try {
+      // Get user ID from authenticated user
+      if (!req.user || !req.user.userId) {
+        ResponseHandler.unauthorized(res, 'User not authenticated', ErrorCode.INVALID_TOKEN);
+        return;
+      }
+      
+      const userId = req.user.userId;
+      const file = req.file;
+      
+      if (!file) {
+        ResponseHandler.validationError(res, 'No profile image provided');
+        return;
+      }
+      
+      // Get user from repository
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        return;
+      }
+      
+      // Get S3 file location
+      const s3File = file as Express.MulterS3.File;
+      const profileImageUrl = s3File.location;
+      
+      // Update user in database with new profile image
+      const updatedUser = await this.userRepository.updateProfileImage(userId, profileImageUrl);
+      
+      if (!updatedUser) {
+        ResponseHandler.error(res, 'Failed to update profile image', StatusCode.INTERNAL_SERVER_ERROR);
+        return;
+      }
+      
+      ResponseHandler.success(res, {
+        success: true,
+        message: 'Profile image updated successfully',
+        profileImage: profileImageUrl
+      });
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  async updateProfile(req: Request, res: Response): Promise<void> {
+    try {
+      // Get user ID from authenticated user or body
       let userId;
       if (req.user && req.user.userId) {
         userId = req.user.userId;
       } else if (req.body.userId) {
         userId = req.body.userId;
       } else {
-        res.status(400).json({
-          success: false,
-          message: 'User ID is required',
-          shouldClearSession: false
-        });
+        ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
         return;
       }
       
-      const { fullName, phone, currentPassword, newPassword, profileImagePath } = req.body;
+      const { fullName, phone, currentPassword, newPassword, profileImagePath } = req.body as UpdateProfileRequest;
       const profileImage = req.file;
       
       // Get auth token from headers
       const authHeader = req.headers.authorization;
       if (!authHeader) {
-        res.status(401).json({
-          success: false,
-          message: 'Authorization header is required',
-          shouldClearSession: false
-        });
+        ResponseHandler.unauthorized(res, ErrorMessage.AUTH_HEADER_REQUIRED);
+        return;
+      }
+      
+      // Validate phone format if provided
+      if (phone && !this.validatePhoneNumber(phone)) {
+        ResponseHandler.validationError(res, ErrorMessage.INVALID_PHONE_FORMAT);
         return;
       }
       
       // If password change is requested, verify with auth service first
       if (currentPassword && newPassword) {
         try {
-          const authResponse = await axios.put(`${AUTH_SERVICE_URL}/auth/update-password`, {
+          const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+          const authResponse = await axios.put(`${authServiceUrl}/auth/update-password`, {
             userId,
             currentPassword,
             newPassword
@@ -162,163 +365,233 @@ export const userController = {
               Authorization: authHeader
             }
           });
-
+          console.log('Auth service response:', authResponse.data);
+          
           const authData = authResponse.data as { success: boolean };
           if (!authData.success) {
-            res.status(400).json({
-              success: false,
-              message: 'Password change failed - current password may be incorrect',
-              passwordError: true,
-              shouldClearSession: false
-            });
+            ResponseHandler.error(
+              res,
+              ErrorMessage.PASSWORD_CHANGE_FAILED,
+              StatusCode.BAD_REQUEST,
+              ErrorCode.PASSWORD_CHANGE_FAILED,
+              { passwordError: true, shouldClearSession: false }
+            );
             return;
           }
         } catch (error: any) {
-          res.status(400).json({
-            success: false,
-            message: error.response?.data?.message || 'Password change failed - current password may be incorrect',
-            passwordError: true,
-            shouldClearSession: false
-          });
+          
+          
+          ResponseHandler.error(
+            res,
+            error.response?.data.error || ErrorMessage.PASSWORD_CHANGE_FAILED,
+            StatusCode.BAD_REQUEST,
+            ErrorCode.PASSWORD_CHANGE_FAILED,
+            { passwordError: true, shouldClearSession: false }
+          );
           return;
         }
       }
 
       // Get user from repository
-      const user = await userRepository.findById(userId);
+      const user = await this.userRepository.findById(userId);
       if (!user) {
-        res.status(404).json({ 
-          success: false, 
-          message: 'User not found',
-          shouldClearSession: true
-        });
+        ResponseHandler.notFound(
+          res, 
+          ErrorMessage.USER_NOT_FOUND,
+          { shouldClearSession: true }
+        );
         return;
       }
 
-
-      // Prepare update data
-      const updateData: any = {
-        ...(fullName && { fullName }),
-        ...(phone && { phone }),
-        ...(profileImage && { profileImage: (profileImage as Express.MulterS3.File).location }),
-        ...(profileImagePath && { profileImage: profileImagePath }) // Use profileImagePath if provided
-      };
-
-
-      // Update user
-      const updatedUser = await userRepository.update(userId, updateData);
-
-      // Return the direct S3 URL for the profile image
-      const profileImageUrl = updatedUser.profileImage;
-
-      res.status(200).json({
-        success: true,
-        message: 'Profile updated successfully',
-        user: {
-          ...updatedUser,
-          profileImage: profileImageUrl
-        }
-      });
-    } catch (error: any) {
-      console.error('Update profile error:', error.message, error.stack);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to update profile',
-        shouldClearSession: false
-      });
-    }
-  },
-
-  async getAll(req: Request, res: Response) {
-    try {
-      const users = await userRepository.findAll();
+      // Update profile fields
+      const updateData: Partial<UpdateUserRequest> = {};
       
-      // Add full URL for profile images
-      const usersWithFullUrls = users.map(user => ({
-        ...user,
-        profileImage: user.profileImage 
-          ? `${user.profileImage}`
-          : null
-      }));
-
-      res.status(200).json({ 
-        success: true, 
-        users: usersWithFullUrls 
-      });
+      if (fullName) updateData.fullName = fullName;
+      if (phone) {
+        updateData.phone = phone;
+      }
+      
+      // Handle profile image upload
+      let imageUrl = user.profileImage;
+      
+      if (profileImage) {
+        // Process the uploaded file
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const fileExtension = path.extname(profileImage.originalname);
+        const fileName = `profile-${userId}-${uniqueSuffix}${fileExtension}`;
+        const savePath = path.join(__dirname, '../../../uploads', fileName);
+        
+        try {
+          // Create directory if it doesn't exist
+          if (!fs.existsSync(path.join(__dirname, '../../../uploads'))) {
+            fs.mkdirSync(path.join(__dirname, '../../../uploads'), { recursive: true });
+          }
+          
+          // Move file from temp location to our uploads folder
+          fs.copyFileSync(profileImage.path, savePath);
+          fs.unlinkSync(profileImage.path); // Remove the temp file
+          
+          // Generate URL for the image
+          const apiUrl = process.env.API_URL || 'http://localhost:3002';
+          imageUrl = `${apiUrl}/uploads/${fileName}`;
+          updateData.profileImage = imageUrl;
+        } catch (error) {
+          console.error('Error saving profile image:', error);
+          ResponseHandler.error(
+            res,
+            ErrorMessage.FILE_UPLOAD_ERROR,
+            StatusCode.INTERNAL_SERVER_ERROR,
+            ErrorCode.FILE_UPLOAD_ERROR
+          );
+          return;
+        }
+      } else if (profileImagePath) {
+        // If an image path is provided directly (like from S3)
+        updateData.profileImage = profileImagePath;
+      }
+      
+      // Update user in database
+      const updatedUser = await this.userRepository.update(userId, updateData);
+      
+      if (!updatedUser) {
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        return;
+      }
+      
+      const response: UpdateProfileResponse = {
+        success: true,
+        message: ErrorMessage.PROFILE_UPDATED,
+        user: {
+          userId: updatedUser.userId,
+          fullName: updatedUser.fullName,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+          profileImage: updatedUser.profileImage,
+          status: updatedUser.status,
+          isVerified: updatedUser.isVerified,
+          onlineStatus: updatedUser.onlineStatus
+        }
+      };
+      
+      ResponseHandler.success(res, response);
     } catch (error) {
-      console.error('Get all users error:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
+      ResponseHandler.handleError(res, error);
     }
-  },
+  }
 
-  async updateStatus(req: Request, res: Response) {
+  async getAll(req: Request, res: Response): Promise<void> {
+    try {
+      const users = await this.userRepository.findAll();
+      
+      const usersWithImageUrls = users.map(user => ({
+        ...user,
+        profileImage: user.profileImage ? `${user.profileImage}` : undefined
+      }));
+      
+      const response: UsersResponse = {
+        success: true,
+        users: usersWithImageUrls
+      };
+      
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  async updateStatus(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
-      const { status } = req.body;
-
-      if (typeof status !== 'boolean') {
-        res.status(400).json({
-          success: false,
-          error: 'Status must be a boolean value'
-        });
+      const { status } = req.body as UpdateUserStatusRequest;
+      
+      if (!userId) {
+        ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
         return;
       }
-
-      const updatedUser = await userRepository.findByIdAndUpdate(
-        userId,
-        { status }
-      );
-
+      
+      if (status === undefined) {
+        ResponseHandler.validationError(res, 'Status is required');
+        return;
+      }
+      
+      const updatedUser = await this.userRepository.updateStatus(userId, status);
+      
       if (!updatedUser) {
-        res.status(404).json({
-          success: false,
-          error: 'User not found'
-        });
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
         return;
       }
-
-      res.status(200).json({
+      
+      const response: UserStatusResponse = {
         success: true,
-        message: 'User status updated successfully',
-        user: updatedUser
-      });
+        message: ErrorMessage.STATUS_UPDATED,
+        userId: updatedUser.userId,
+        status: updatedUser.status
+      };
+      
+      ResponseHandler.success(res, response);
     } catch (error) {
-      console.error('Update user status error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error'
-      });
+      ResponseHandler.handleError(res, error);
     }
-  },
+  }
 
-  async getByEmail(req: Request, res: Response) {
+  async getByEmail(req: Request, res: Response): Promise<void> {
     try {
       const { email } = req.params;
       
-      const user = await userRepository.findByEmail(email);
-      
-      if (!user) {
-        res.status(404).json({
-          success: false,
-          error: 'User not found'
-        });
+      if (!email) {
+        ResponseHandler.validationError(res, 'Email is required');
         return;
       }
-
-      res.status(200).json({
+      
+      // Validate email
+      if (!validator.isEmail(email)) {
+        ResponseHandler.validationError(res, ErrorMessage.INVALID_EMAIL_FORMAT);
+        return;
+      }
+      
+      const user = await this.userRepository.findByEmail(email);
+      
+      if (!user) {
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        return;
+      }
+      
+      // Add full URL for profile image
+      const userData = {
+        ...user,
+        profileImage: user.profileImage ? `${user.profileImage}` : undefined
+      };
+      
+      const response: UserResponse = {
         success: true,
-        user: {
-          userId: user.userId,
-          email: user.email,
-          status: user.status
-        }
-      });
+        user: userData
+      };
+      
+      ResponseHandler.success(res, response);
     } catch (error) {
-      console.error('Get user by email error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error'
-      });
+      ResponseHandler.handleError(res, error);
     }
   }
-};
+  
+  // Helper method for phone validation
+  private validatePhoneNumber(phone: string): boolean {
+    // Use validator.js instead of regex
+    if (validator.isEmpty(phone)) {
+      return false;
+    }
+    
+    // Remove all non-digit characters for standardization
+    const cleanedPhone = phone.replace(/\D/g, '');
+    
+    // Check if it's an Indian phone number (with or without country code)
+    // Indian mobile numbers are 10 digits, starting with 6-9
+    // With country code it would be +91 followed by the 10 digits
+    if (cleanedPhone.length === 10) {
+      return /^[6-9]\d{9}$/.test(cleanedPhone);
+    } else if (cleanedPhone.length === 12 && cleanedPhone.startsWith('91')) {
+      return /^91[6-9]\d{9}$/.test(cleanedPhone);
+    }
+    
+    return false;
+  }
+}

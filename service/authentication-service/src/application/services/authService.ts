@@ -1,7 +1,16 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
-export class AuthService {
+export interface AuthServiceType {
+  generateToken(userId: string, email: string, role: string): string;
+  generateRefreshToken(userId: string, email: string, role: string): string;
+  verifyToken(token: string): Promise<any>;
+  verifyRefreshToken(token: string): Promise<any>;
+  getRefreshTokenExpiry(): Date;
+  generateUserId(): string;
+}
+
+export class AuthService implements AuthServiceType {
   private readonly jwtSecret: string;
   private readonly jwtExpiresIn: string;
   private readonly refreshSecret: string;

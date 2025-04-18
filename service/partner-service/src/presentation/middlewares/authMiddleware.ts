@@ -144,8 +144,10 @@ export const requireRole = (roles: string[]) => {
 
 // Optional: Add specific middleware for admin-only routes
 export const adminOnly = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+    
+    // try {
         
         if (!authHeader) {
              res.status(401).json({ 
@@ -155,11 +157,18 @@ export const adminOnly = async (req: Request, res: Response, next: NextFunction)
             return
         }
 
-        const response = await axios.get('http://localhost:3001/auth/verify-token', {
-            headers: { Authorization: authHeader }
+        const response = await axios.post('http://localhost:3001/auth/verify-token', {
+            token: token,
+            purpose: 'admin-access'
+        }, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
+        console.log('Admin auth response:', response.data);
+        
 
-        if (response.data.valid && response.data.user.role === 'admin') {
+        if (response.data.success && response.data.user.role === 'admin') {
             req.user = response.data.user;
             next();
         } else {
@@ -169,12 +178,12 @@ export const adminOnly = async (req: Request, res: Response, next: NextFunction)
             });
             return
         }
-    } catch (error) {
-        console.error('Admin auth error:', error);
-         res.status(401).json({ 
-            success: false, 
-            message: 'Invalid admin token' 
-        });
-        return
-    }
+    // } catch (error) {
+    //     console.error('Admin auth error:', error);
+    //      res.status(401).json({ 
+    //         success: false, 
+    //         message: 'Invalid admin token' 
+    //     });
+    //     return
+    // }
 }; 

@@ -230,7 +230,7 @@ export const partnerController = {
         ongoing: driver.ongoingOrders || 0,
         canceled: driver.canceledOrders || 0,
         completed: driver.completedOrders || 0,
-        status: driver.isActive || false,  // Keep this for PartnerList
+        status: driver.status || false,  // Keep this for PartnerList
         bankDetailsCompleted: driver.bankDetailsCompleted || false,
         personalDocumentsCompleted: driver.personalDocumentsCompleted || false,
         vehicleDetailsCompleted: driver.vehicleDetailsCompleted || false,
@@ -445,9 +445,9 @@ export const partnerController = {
           fullName: updatedPartner.fullName,
           email: updatedPartner.email,
           phone: updatedPartner.mobileNumber,
-          status: updatedPartner.isActive,
+          status: updatedPartner.status,
           profileImage: updatedPartner.profilePicturePath 
-            ? `${process.env.API_URL}/uploads/${updatedPartner.profilePicturePath}`
+            ? `${updatedPartner.profilePicturePath}`
             : null,
           totalOrders: updatedPartner.totalOrders || 0,
           completedOrders: updatedPartner.completedOrders || 0,

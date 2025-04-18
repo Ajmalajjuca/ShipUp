@@ -76,19 +76,21 @@ const OTPVerification: React.FC = () => {
           otp: otpValue,
           newPassword
         });
-
+        
+        
         if (response.success) {
           toast.success('Password reset successful!');
           navigate('/login');
         }
         return;
       }
-
+      
       // Registration verification flow
       const response = await authService.verifyOtp({
         email,
         otp: otpValue
       });
+      console.log('response=>>>', response);
       
       const tempToken = sessionStorage.getItem('tempToken');
       const pendingUser = JSON.parse(sessionStorage.getItem('pendingUser') || '{}');
@@ -101,10 +103,15 @@ const OTPVerification: React.FC = () => {
 
       // After successful OTP verification, move temp data to permanent storage
       const permanentToken = response.token || tempToken;
-      dispatch(loginSuccess({ user: pendingUser, token: permanentToken }));
+      const refreshToken = response.refreshToken || '';
+      
+      dispatch(loginSuccess({ user: pendingUser, token: permanentToken, refreshToken }));
       
       localStorage.setItem('authToken', permanentToken);
       localStorage.setItem('userData', JSON.stringify(pendingUser));
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
       
       // Clear temporary storage
       sessionStorage.removeItem('tempToken');

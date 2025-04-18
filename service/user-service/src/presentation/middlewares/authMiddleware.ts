@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserRepositoryImpl } from '../../infrastructure/repositories/userRepositoryImpl';
+import { ResponseHandler } from '../utils/responseHandler';
+import { ErrorMessage } from '../../types/enums/ErrorMessage';
+import { ErrorCode } from '../../types/enums/ErrorCode';
 
 const userRepository = new UserRepositoryImpl();
 
@@ -14,7 +17,8 @@ declare global {
         userId: string;
         email: string;
         role: string;
-        status?: boolean;  // Add status to the type
+        status?: boolean;
+        profileImage?: string;
       };
     }
   }
@@ -28,26 +32,19 @@ export const authMiddleware = async (
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      res.status(401).json({ 
-        success: false, 
-        message: 'No token provided',
-        error: 'missing_token'
-      });
+      ResponseHandler.unauthorized(res, ErrorMessage.AUTH_HEADER_REQUIRED, ErrorCode.AUTH_HEADER_REQUIRED);
       return;
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      res.status(401).json({ 
-        success: false, 
-        message: 'Invalid token format',
-        error: 'invalid_token_format'
-      });
+      ResponseHandler.unauthorized(res, 'Invalid token format', 'INVALID_TOKEN_FORMAT');
       return;
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
+      const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+      const decoded = jwt.verify(token, jwtSecret) as {
         userId: string;
         email: string;
         role: string;
@@ -56,25 +53,23 @@ export const authMiddleware = async (
       // Get user from database
       const user = await userRepository.findById(decoded.userId);
       
-      // Check if user exists and status is false
+      // Check if user exists
       if (!user) {
-        res.status(401).json({ 
-          success: false, 
-          message: 'User not found', 
-          error: 'user_not_found'
-        });
+        ResponseHandler.unauthorized(res, ErrorMessage.USER_NOT_FOUND, ErrorCode.USER_NOT_FOUND);
         return;
       }
 
       // Check user status
       if (user.status === false) {
-        res.status(401).json({ 
-          success: false, 
-          message: 'Your account has been blocked. Please contact admin for support.',
-          isDeactivated: true,
-          redirect: '/login',
-          error: 'account_blocked'
-        });
+        ResponseHandler.unauthorized(
+          res, 
+          'Your account has been blocked. Please contact admin for support.',
+          'ACCOUNT_BLOCKED',
+          { 
+            isDeactivated: true,
+            redirect: '/login'
+          }
+        );
         return;
       }
 
@@ -85,33 +80,31 @@ export const authMiddleware = async (
       }
       
       req.user = { 
-        ...decoded, 
-        ...user 
+        userId: decoded.userId,
+        email: decoded.email,
+        role: decoded.role,
+        status: user.status,
+        profileImage: user.profileImage
       };
 
       next();
     } catch (error: any) {
       let errorMessage = 'Invalid token';
-      let errorCode = 'invalid_token';
+      let errorCode = ErrorCode.INVALID_TOKEN;
       
       if (error.name === 'TokenExpiredError') {
         errorMessage = 'Token has expired';
-        errorCode = 'token_expired';
+        errorCode = ErrorCode.TOKEN_EXPIRED;
       } else if (error.name === 'JsonWebTokenError') {
         errorMessage = 'Invalid token';
-        errorCode = 'invalid_token';
+        errorCode = ErrorCode.INVALID_TOKEN;
       }
       
-      res.status(401).json({ 
-        success: false, 
-        message: errorMessage,
-        error: errorCode
-      });
+      ResponseHandler.unauthorized(res, errorMessage, errorCode);
       return;
     }
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    ResponseHandler.handleError(res, error);
     return;
   }
 }; 

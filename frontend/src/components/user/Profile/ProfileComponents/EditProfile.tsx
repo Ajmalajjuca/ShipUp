@@ -160,7 +160,7 @@ const EditProfile: React.FC = () => {
           sessionManager.clearSession();
           navigate('/login');
         } else {
-          toast.error(response.message || 'Failed to update profile');
+          toast.error(response.message || 'Failed to update profileeeee');
         }
       }
     } catch (error: any) {
@@ -178,7 +178,7 @@ const EditProfile: React.FC = () => {
         sessionManager.clearSession();
         navigate('/login');
       } else {
-        toast.error(error.response?.data?.message || 'Failed to update profile');
+        toast.error(error.response?.data?.error || 'Failed to update profile');
       }
     } finally {
       setLoading(false);

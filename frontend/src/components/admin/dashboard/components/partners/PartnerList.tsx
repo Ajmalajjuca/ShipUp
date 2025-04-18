@@ -40,11 +40,13 @@ const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
 
   useEffect(() => {
     fetchPartners();
+    
   }, []);
 
   const fetchPartners = async () => {
     try {
       const response = await driverService.getAllDrivers();
+      console.log('response:', response);
 
       // Filter only fully verified partners
       const verifiedPartners = (response.partners || []).filter((partner: Partner) =>
@@ -61,6 +63,7 @@ const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
       setLoading(false);
     }
   };
+  
 
   const handleStatusToggle = async (partnerId: string, currentStatus: boolean) => {
     try {
@@ -68,21 +71,17 @@ const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
       
       // Call the API to update the status
       const response = await driverService.updateDriverStatus(partnerId, !currentStatus);
-
+      
       if (response.success) {
         // Use the status field directly from the API response
         const newStatus = response.partner.status;
-          
-        
-        // Update the partners array with the new status
-        setPartners(prevPartners => 
-          prevPartners.map(partner =>
+          setPartners(partners.map(partner =>
             partner.partnerId === partnerId 
-              ? { ...partner, status: newStatus } 
+              ? { ...partner, status: !currentStatus } 
               : partner
-          )
-        );
-        toast.success(`Partner ${newStatus ? 'activated' : 'deactivated'} successfully`);
+          ));
+
+        toast.success(`Partner ${newStatus ? 'Activated' : 'Deactivated'} successfully`);
       } else {
         // Show error toast if the API call was successful but status update failed
         toast.error(response.message || 'Failed to update status');
@@ -119,6 +118,8 @@ const PartnerList: React.FC<PartnerListProps> = ({ onViewPartner }) => {
 
     try {
       const response = await driverService.updateDriver(selectedPartner.partnerId, updatedPartner);
+      console.log('Update response:', response);
+      
       
       setPartners(partners.map(partner =>
         partner.partnerId === selectedPartner.partnerId

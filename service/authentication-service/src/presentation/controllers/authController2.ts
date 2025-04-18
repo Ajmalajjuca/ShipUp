@@ -354,11 +354,35 @@ export const authController = {
         return;
       }
 
+      // Get the user details for refresh token generation
+      const user = await authRepository.findByEmail(email);
+      if (!user) {
+        res.status(404).json({ success: false, error: 'User not found' });
+        return;
+      }
+
+      // Generate refresh token
+      const refreshToken = authService.generateRefreshToken(
+        user.userId,
+        email,
+        user.role
+      );
+      
+      // Calculate refresh token expiry
+      const refreshTokenExpiry = authService.getRefreshTokenExpiry();
+      
+      // Save refresh token to the database
+      await authRepository.update(user.userId, {
+        refreshToken,
+        refreshTokenExpiry
+      });
+
       // Normal OTP verification flow
       res.status(200).json({
         success: true,
         message: 'OTP verified successfully',
-        token: result.token
+        token: result.token,
+        refreshToken: refreshToken
       });
       
     } catch (error) {

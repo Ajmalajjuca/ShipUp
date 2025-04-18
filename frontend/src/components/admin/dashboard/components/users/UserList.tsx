@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { Search, Edit2, Eye, Trash2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Pagination from '../../../../common/Pagination';
@@ -47,7 +47,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose, on
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      toast.error('Failed to update user');
+      toast.error((error as any).response.data.error||'Failed to update user');
     }
   };
 
@@ -152,6 +152,7 @@ const UserList: React.FC<UserListProps> = ({ onViewUser }) => {
 
   useEffect(() => {
     fetchUsers();
+
   }, []);
 
   const fetchUsers = async () => {
@@ -165,16 +166,21 @@ const UserList: React.FC<UserListProps> = ({ onViewUser }) => {
       setLoading(false);
     }
   };
+  
 
   const handleStatusToggle = async (userId: string, currentStatus: boolean) => {
     try {
       const response = await userService.updateUserStatus(userId, !currentStatus);
 
       if (response.success) {
+        const newStatus = response?.user?.status;
+
         setUsers(users.map(user => 
           user.userId === userId ? { ...user, status: !currentStatus } : user
         ));
-        toast.success('Status updated successfully');
+       
+        
+        toast.success(`User  ${newStatus ? 'Activated' : 'Deactivated'} successfully`);
       }
     } catch (err) {
       console.error('Error updating user status:', err);

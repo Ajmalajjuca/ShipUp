@@ -1,54 +1,202 @@
-# React + TypeScript + Vite
+# ShipUp Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern React application built with TypeScript for the ShipUp delivery management platform.
 
-Currently, two official plugins are available:
+## Table of Contents
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Running the Application](#running-the-application)
+  - [Environment Variables](#environment-variables)
+- [Project Structure](#project-structure)
+- [Features](#features)
+  - [Authentication](#authentication)
+  - [User Management](#user-management)
+  - [Driver Management](#driver-management)
+  - [Order Management](#order-management)
+  - [Real-time Tracking](#real-time-tracking)
+- [API Integration](#api-integration)
+- [Contribution Guide](#contribution-guide)
 
-## Expanding the ESLint configuration
+## Overview
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+The ShipUp frontend is a responsive web application that provides interfaces for users, drivers, and administrators to manage the delivery service platform. It communicates with multiple backend microservices to provide a seamless experience.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm (v7 or higher)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/ShipUp.git
+cd ShipUp/frontend
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+2. Install dependencies:
+```bash
+npm install
 ```
+
+### Running the Application
+
+For development:
+```bash
+npm run dev
+```
+
+For production build:
+```bash
+npm run build
+npm run preview
+```
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+VITE_AUTH_API_URL=http://localhost:3001/auth
+VITE_USER_API_URL=http://localhost:3002/api
+VITE_PARTNER_API_URL=http://localhost:3003/api
+VITE_ORDER_API_URL=http://localhost:3004/api
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
+
+## Project Structure
+
+```
+src/
+├── assets/            # Static assets (images, fonts, etc.)
+├── components/        # Reusable UI components
+│   ├── common/        # Common components used across the app
+│   ├── auth/          # Authentication related components
+│   ├── user/          # User profile related components
+│   ├── driver/        # Driver related components
+│   ├── order/         # Order related components
+│   └── admin/         # Admin dashboard components
+├── contexts/          # React contexts for state management
+├── hooks/             # Custom React hooks
+├── layouts/           # Layout components (header, footer, sidebar)
+├── pages/             # Page components corresponding to routes
+├── services/          # API service functions
+├── types/             # TypeScript interfaces and types
+├── utils/             # Utility functions
+├── App.tsx            # Main App component
+└── main.tsx           # Entry point
+```
+
+## Features
+
+### Authentication
+
+- User registration and login
+- Driver registration and login
+- Social authentication with Google
+- Password reset with OTP
+- Token-based authentication with JWT
+- Automatic token refresh
+
+### User Management
+
+- User profile management
+- Address management
+- Order history
+- Payment methods
+
+### Driver Management
+
+- Driver profile management
+- Document upload and verification
+- Vehicle details management
+- Online/offline status
+- Order assignment and tracking
+
+### Order Management
+
+- Create new delivery orders
+- Track order status
+- View order details
+- Cancel orders
+- Payment processing
+
+### Real-time Tracking
+
+- Real-time driver location tracking
+- Delivery status updates
+- Estimated delivery time
+
+## API Integration
+
+The frontend communicates with the following backend services:
+
+1. **Authentication Service** (port 3001)
+   - User and driver authentication
+   - Token management
+   - OTP verification
+
+2. **User Service** (port 3002)
+   - User profile management
+   - User addresses
+   - File uploads
+
+3. **Partner Service** (port 3003)
+   - Driver profile management
+   - Document verification
+   - Vehicle management
+
+4. **Order Service** (port 3004)
+   - Order creation and management
+   - Pricing calculations
+   - Payment processing
+   - Order tracking
+
+Each service has its own dedicated API client in the `services` directory.
+
+## Contribution Guide
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature-name`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature-name`
+5. Open a pull request
+
+## Code Style
+
+This project uses ESLint and Prettier for code style enforcement. Run linting with:
+
+```bash
+npm run lint
+```
+
+Fix linting issues with:
+
+```bash
+npm run lint:fix
+```
+
+## Testing
+
+Run tests with:
+
+```bash
+npm test
+```
+
+## Build With
+
+- [React](https://reactjs.org/) - UI library
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [Vite](https://vitejs.dev/) - Build tool
+- [TailwindCSS](https://tailwindcss.com/) - CSS framework
+- [React Router](https://reactrouter.com/) - Routing
+- [Axios](https://axios-http.com/) - HTTP client
+- [React Query](https://react-query.tanstack.com/) - Data fetching and caching
+- [React Hook Form](https://react-hook-form.com/) - Form validation
+- [Google Maps API](https://developers.google.com/maps) - Maps and location services

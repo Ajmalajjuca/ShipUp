@@ -35,6 +35,14 @@ export const partnerApi = axios.create({
   }
 });
 
+// Add the orderApi instance after other API instances
+export const orderApi = axios.create({
+  baseURL: 'http://localhost:3004/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
 // Flag to track if a refresh is in progress
 let isRefreshing = false;
 // Queue of requests to retry after token refresh
@@ -72,7 +80,7 @@ const isTokenExpiringSoon = (token: string): boolean => {
     
     // If token expires in less than 120 seconds (2 minutes), refresh it
     // This gives plenty of time to refresh before expiration
-    return timeRemaining < 120;
+    return timeRemaining < 180;
   } catch (error) {
     console.error('Error decoding token:', error);
     // If we can't decode the token at all, it's likely invalid, so try to refresh
@@ -304,8 +312,8 @@ const errorInterceptor = async (error: any) => {
   return Promise.reject(error);
 };
 
-// Apply interceptors to all instances including partnerApi
-[authApi, userApi, driverApi, partnerApi].forEach(instance => {
+// Apply interceptors to all instances including partnerApi and orderApi
+[authApi, userApi, driverApi, partnerApi, orderApi].forEach(instance => {
   instance.interceptors.request.use(requestInterceptor);
   instance.interceptors.response.use(responseInterceptor, errorInterceptor);
 }); 

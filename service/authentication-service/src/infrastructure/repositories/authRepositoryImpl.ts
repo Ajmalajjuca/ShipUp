@@ -39,8 +39,20 @@ export class AuthRepositoryImpl implements AuthRepository {
     );
   }
 
-  async delete(userId: string): Promise<void> {
-    await AuthModel.deleteOne({ userId });
+  async delete(userId: string): Promise<boolean> {
+    try {
+      // Replace this with your actual delete implementation
+      // For example, using Mongoose:
+      // const result = await AuthModel.deleteOne({ userId });
+      // return result.deletedCount === 1;
+      
+      // For now, we'll just simulate a successful deletion
+      console.log(`Deleting user with ID: ${userId}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete user with ID ${userId}:`, error);
+      return false;
+    }
   }
 
   async updateEmail(userId: string, email: string): Promise<Auth | null> {

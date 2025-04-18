@@ -1,37 +1,40 @@
-import express from 'express';
-import { authController } from '../controllers/authController2';
+import { Router } from 'express';
+import { userAuthController } from '../../infrastructure/di/container';
+import { tokenController } from '../../infrastructure/di/container';
+import { otpController } from '../../infrastructure/di/container';
+import { socialAuthController } from '../../infrastructure/di/container';
+import { driverAuthController } from '../../infrastructure/di/container';
 import multer from 'multer';
-import { validateRefreshToken } from '../middlewares/authMiddleware';
 
-const router = express.Router();
+const router = Router();
 const upload = multer({ dest: 'uploads/' });
 
-// Registration and authentication routes
-router.post('/register', authController.register);
-router.post('/register-driver', upload.any(), authController.registerDriver);
-router.post('/login', authController.login);
-router.post('/login-otp', authController.requestLoginOtp);
-router.post('/verify-login-otp', authController.verifyLoginOtp);
-router.post('/send-otp', authController.sendOtp);
-router.post('/verify-otp', authController.verifyOtp);
-router.post('/forgot-password', authController.forgotPassword);
-router.delete('/:userId', authController.delete);
+// User Auth Routes
+router.post('/register', userAuthController.register.bind(userAuthController));
+router.post('/login', userAuthController.login.bind(userAuthController));
+router.post('/verify-password', userAuthController.verifyPassword.bind(userAuthController));
+router.put('/update-password', userAuthController.updatePassword.bind(userAuthController));
+router.delete('/users/:userId', userAuthController.delete.bind(userAuthController));
 
-// Token refresh and verification routes
-router.post('/refresh-token', authController.refreshToken);
-router.post('/logout', authController.logout);
-router.get('/verify-token', authController.verifyToken);
-router.post('/verify-partner-token', authController.verifyPartnerToken);
-router.post('/verify-password', authController.verifyPassword);
-router.put('/update-password', authController.updatePassword);
+// Token Routes
+router.post('/verify-token', tokenController.verifyToken.bind(tokenController));
+router.post('/refresh-token', tokenController.refreshToken.bind(tokenController));
+router.post('/logout', tokenController.logout.bind(tokenController));
+router.post('/temp-token', tokenController.createTempToken.bind(tokenController));
+router.post('/verify-partner-token', tokenController.verifyPartnerToken.bind(tokenController));
 
-// Social login routes
-router.post('/google', authController.googleLogin);
+// OTP Routes
+router.post('/send-otp', otpController.sendOtp.bind(otpController));
+router.post('/verify-otp', otpController.verifyOtp.bind(otpController));
+router.post('/forgot-password', otpController.forgotPassword.bind(otpController));
+router.post('/request-login-otp', otpController.requestLoginOtp.bind(otpController));
+router.post('/verify-login-otp', otpController.verifyLoginOtp.bind(otpController));
 
-// Partner specific routes
-router.put('/update-email/:partnerId', authController.updateEmail);
+// Social Auth Routes
+router.post('/google-login', socialAuthController.googleLogin.bind(socialAuthController));
 
-// Temp token for document uploads
-router.post('/temp-token', authController.createTempToken);
+// Driver Auth Routes
+router.post('/register-driver', driverAuthController.registerDriver.bind(driverAuthController));
+router.put('/drivers/:partnerId/email', driverAuthController.updateEmail.bind(driverAuthController));
 
 export default router;

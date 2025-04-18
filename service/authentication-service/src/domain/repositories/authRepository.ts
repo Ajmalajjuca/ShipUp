@@ -1,16 +1,11 @@
 import { Auth } from '../entities/auth';
 
 export interface AuthRepository {
-  create(userData: {
-    userId: string;
-    email: string;
-    password: string;
-    role: 'user' | 'driver' | 'admin';
-  }): Promise<any>;
-  findByEmail(email: string): Promise<any>;
-  findById(id: string): Promise<any>;
-  update(userId: string, data: Partial<Auth>): Promise<Auth>;
-  updatePassword(userId: string, hashedPassword: string): Promise<void>;
-  delete(userId: string): Promise<void>;
-  updateEmail(userId: string, email: string): Promise<Auth | null>;
+  create(user: { userId: string; email: string; password: string; role: string }): Promise<any>;
+  findByEmail(email: string): Promise<any | null>;
+  findById(userId: string): Promise<any | null>;
+  update(userId: string, data: any): Promise<any>;
+  updatePassword(userId: string, newPassword: string): Promise<any>;
+  updateEmail(userId: string, newEmail: string): Promise<any>;
+  delete(userId: string): Promise<boolean>;
 }

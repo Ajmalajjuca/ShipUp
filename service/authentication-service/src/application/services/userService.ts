@@ -1,17 +1,21 @@
 import axios from 'axios';
+import { UserServiceInterface } from './userServiceInterface';
 
-export class UserService {
-  constructor(private userServiceUrl: string = process.env.USER_SERVICE_URL || '') {}
+export class UserService implements UserServiceInterface {
+  private userServiceUrl: string;
+
+  constructor(userServiceUrl: string = process.env.USER_SERVICE_URL || '') {
+    this.userServiceUrl = userServiceUrl;
+  }
 
   async createUserProfile(userData: {
     userId: string;
     email: string;
     fullName?: string;
+    phone?: string;
     picture?: string;
     role: string;
   }) {
-
-    
     try {
       const response = await axios.post(`${this.userServiceUrl}/users`, userData, {
         headers: {
@@ -32,8 +36,6 @@ export class UserService {
   }
 
   async getUserProfile(userId: string, token: string) {
-
-    
     try {
       const response = await axios.get(
         `${this.userServiceUrl}/users/${userId}`,
@@ -55,6 +57,16 @@ export class UserService {
         serviceUrl: this.userServiceUrl
       });
       return null;
+    }
+  }
+
+  async checkUserStatus(userId: string, token: string): Promise<boolean> {
+    try {
+      const user = await this.getUserProfile(userId, token);
+      return user?.status || false;
+    } catch (error) {
+      console.error('Error checking user status:', error);
+      return false;
     }
   }
 } 

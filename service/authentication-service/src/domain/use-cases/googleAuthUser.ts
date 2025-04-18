@@ -1,12 +1,12 @@
 import { AuthRepository } from '../repositories/authRepository';
-import { AuthService } from '../../application/services/authService';
-import { UserService } from '../../application/services/userService';
+import { AuthServiceType } from '../../application/services/authService';
+import { UserServiceInterface } from '../../application/services/userServiceInterface';
 
 export class GoogleAuthUser {
   constructor(
     private authRepository: AuthRepository,
-    private authService: AuthService,
-    private userService: UserService
+    private authService: AuthServiceType,
+    private userService: UserServiceInterface
   ) {}
 
   async execute(googlePayload: {
@@ -26,14 +26,13 @@ export class GoogleAuthUser {
           userId: `USR-${this.authService.generateUserId()}`,
           email: googlePayload.email,
           password: '', // Google authenticated users don't need password
-          role: 'user' as const,
+          role: 'user',
         };
 
         try {
           // Create auth user
           user = await this.authRepository.create(userData);
           
-
           // Create user profile
           await this.userService.createUserProfile({
             userId: userData.userId,
@@ -44,7 +43,7 @@ export class GoogleAuthUser {
           });
         } catch (error) {
           console.error('Error creating user:', error);          
-          if (user) {
+          if (user && user.userId) {
             await this.authRepository.delete(userData.userId);
           }
           throw error;

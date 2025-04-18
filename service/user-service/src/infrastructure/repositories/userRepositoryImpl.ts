@@ -31,7 +31,7 @@ export class UserRepositoryImpl implements UserRepository {
     }
   }
 
-  async update(userId: string, data: Partial<User>): Promise<User> {
+  async update(userId: string, data: Partial<User>): Promise<User | null> {
     try {
       const updatedUser = await UserModel.findOneAndUpdate(
         { userId },
@@ -45,7 +45,7 @@ export class UserRepositoryImpl implements UserRepository {
       );
 
       if (!updatedUser) {
-        throw new Error('User not found');
+        return null;
       }
 
       return updatedUser;
@@ -83,6 +83,46 @@ export class UserRepositoryImpl implements UserRepository {
       return updatedUser;
     } catch (error) {
       console.error('Error updating user:', error);
+      return null;
+    }
+  }
+
+  async updateStatus(userId: string, status: boolean): Promise<User | null> {
+    try {
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { userId },
+        { 
+          $set: {
+            status,
+            updatedAt: new Date()
+          }
+        },
+        { new: true, lean: true }
+      );
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      return null;
+    }
+  }
+
+  async updateProfileImage(userId: string, profileImage: string): Promise<User | null> {
+    try {
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { userId },
+        { 
+          $set: {
+            profileImage,
+            updatedAt: new Date()
+          }
+        },
+        { new: true, lean: true }
+      );
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating profile image:', error);
       return null;
     }
   }

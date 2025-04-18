@@ -201,15 +201,10 @@ export const sessionManager = {
     if (!token || !user) return false;
 
     try {
-      // First verify with auth service
-      const authResponse = await axios.get('http://localhost:3001/auth/verify-token', {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Use auth service to verify token
+      const authResponse = await authService.verifyToken(token);
       
-      if (!authResponse.data.valid) {
+      if (!authResponse.success) {
         // Try to refresh the token
         const newToken = await this.refreshAccessToken();
         return !!newToken;
@@ -244,22 +239,17 @@ export const sessionManager = {
 
   async verifyPartnerToken() {
     const { token, driverData } = this.getDriverSession();
+    console.log('Verifying partner token:', token);
+    console.log('Driver data:', driverData);
+    
     
     if (!token || !driverData) return false;
 
     try {
-      // Use the auth service's verify-partner-token endpoint
-      const authResponse = await axios.post('http://localhost:3001/auth/verify-partner-token', 
-        { email: driverData.email },
-        {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      // Use auth service to verify partner token
+      const authResponse = await authService.verifyPartnerToken( driverData.email);
       
-      if (!authResponse.data.success) {
+      if (!authResponse.success) {
         // Try to refresh the token
         const newToken = await this.refreshDriverToken();
         return !!newToken;

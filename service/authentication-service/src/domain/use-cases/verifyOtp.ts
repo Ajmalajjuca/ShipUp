@@ -1,12 +1,12 @@
-import { OtpService } from '../../application/services/otpService';
-import { AuthService } from '../../application/services/authService';
-import { AuthRepository } from '../repositories/authRepository';
+import { OtpServiceInterface } from '../../application/services/otpService';
+import { AuthServiceType } from '../../application/services/authService';
+import { AuthRepository } from '../../domain/repositories/authRepository';
 import axios from 'axios';
 
 export class VerifyOtp {
   constructor(
-    private otpService: OtpService,
-    private authService: AuthService,
+    private otpService: OtpServiceInterface,
+    private authService: AuthServiceType,
     private authRepo: AuthRepository
   ) {}
 
@@ -34,7 +34,7 @@ export class VerifyOtp {
       }
 
       // Existing registration verification logic
-      const pendingDataJson = await this.otpService['redisClient'].get(`${email}:pending`);
+      const pendingDataJson = await this.otpService.getRedisKey(`${email}:pending`);
       if (!pendingDataJson) {
         return { success: false, error: 'No pending registration found' };
       }
@@ -52,15 +52,15 @@ export class VerifyOtp {
           ...additionalData,
         });
       } catch (error) {
-        console.error('Downstream service error:',error);
+        console.error('Downstream service error:', error);
         // Rollback auth creation if downstream fails
-        // await this.authRepo.delete(userId);
+        await this.authRepo.delete(userId);
         return { success: false, error: 'Failed to complete registration' };
       }
 
       await Promise.all([
-        this.otpService['redisClient'].del(`${email}:pending`),
-        this.otpService['redisClient'].del(`${email}:otp`)
+        this.otpService.deleteRedisKey(`${email}:pending`),
+        this.otpService.deleteRedisKey(`${email}:otp`)
       ]);
 
       const token = this.authService.generateToken(userId, email, role);

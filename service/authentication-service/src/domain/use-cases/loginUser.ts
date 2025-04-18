@@ -1,5 +1,5 @@
 import { AuthRepository } from '../repositories/authRepository';
-import { AuthService } from '../../application/services/authService';
+import { AuthService, AuthServiceType } from '../../application/services/authService';
 import bcrypt from 'bcrypt';
 import axios from 'axios';
 
@@ -17,7 +17,7 @@ interface LoginResult {
 export class LoginUser {
   constructor(
     private authRepo: AuthRepository,
-    private authService: AuthService
+    private authService: AuthServiceType
   ) {}
 
   async execute(email: string, password: string): Promise<LoginResult> {

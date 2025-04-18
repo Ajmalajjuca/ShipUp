@@ -203,6 +203,7 @@ const RegistrationForm: React.FC = () => {
       const response = await (initialStage === 'Sign up' 
         ? authService.register(dataToSend)
         : authService.login(dataToSend));
+console.log('response', response);
 
       if (initialStage === 'Sign up') {
         const { user, token } = response;

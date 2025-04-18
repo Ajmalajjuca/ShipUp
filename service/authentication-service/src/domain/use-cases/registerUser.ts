@@ -1,15 +1,15 @@
 import { AuthRepository } from '../repositories/authRepository';
-import { AuthService } from '../../application/services/authService';
-import { OtpService } from '../../application/services/otpService';
-import { EmailService } from '../../application/services/emailService';
+import { AuthServiceType } from '../../application/services/authService';
+import { OtpServiceInterface } from '../../application/services/otpService';
+import { EmailServiceInterface } from '../../application/services/emailService';
 import bcrypt from 'bcrypt';
 
 export class RegisterUser {
   constructor(
     private authRepo: AuthRepository,
-    private authService: AuthService,
-    private otpService: OtpService,
-    private emailService: EmailService
+    private authService: AuthServiceType,
+    private otpService: OtpServiceInterface,
+    private emailService: EmailServiceInterface
   ) {}
 
   async execute(
@@ -54,9 +54,8 @@ export class RegisterUser {
       await this.otpService.storeOtp(email, otp);
 
       // Store all additional data (flexible for both user and driver fields)
-      
       const pendingData = JSON.stringify({ authData, additionalData });
-      await this.otpService['redisClient'].setEx(`${email}:pending`, 300, pendingData);
+      await this.otpService.setRedisKey(`${email}:pending`, pendingData, 300);
 
       await this.emailService.sendOtpEmail(email, otp);
       return { 
@@ -67,8 +66,8 @@ export class RegisterUser {
       
     } catch (error) {      
       console.error('Registration error:', error);
-      await this.otpService['redisClient'].del(`${email}:otp`);
-      await this.otpService['redisClient'].del(`${email}:pending`);
+      await this.otpService.deleteRedisKey(`${email}:otp`);
+      await this.otpService.deleteRedisKey(`${email}:pending`);
       return { success: false, error: 'Registration failed' };
     }
   }

@@ -4,7 +4,19 @@ import bcrypt from 'bcrypt';
 import { RedisClientType, createClient } from 'redis';
 import { Auth } from '../../domain/entities/auth';
 
-export class OtpService {
+export interface OtpServiceInterface {
+  generateOtp(): string;
+  storeOtp(email: string, otp: string): Promise<void>;
+  verifyOtp(email: string, otp: string): Promise<{ isValid: boolean; user?: Auth }>;
+  clearOtp(email: string): Promise<void>;
+  
+  // Add redis client access methods
+  setRedisKey(key: string, value: string, expirationSeconds?: number): Promise<void>;
+  getRedisKey(key: string): Promise<string | null>;
+  deleteRedisKey(key: string): Promise<void>;
+}
+
+export class OtpService implements OtpServiceInterface {
   private redisClient: RedisClientType;
   private readonly OTP_EXPIRATION_SECONDS = 60; 
 
@@ -25,9 +37,7 @@ export class OtpService {
       const hashedOtp = await bcrypt.hash(otp, 10); // Secure OTP storage
 
       // Store OTP and user in Redis with the same expiration
-      await Promise.all([
-        this.redisClient.setEx(`${email}:otp`, this.OTP_EXPIRATION_SECONDS, hashedOtp),
-      ]);
+      await this.redisClient.setEx(`${email}:otp`, this.OTP_EXPIRATION_SECONDS, hashedOtp);
 
       console.log(`OTP for ${email}: ${otp}`); // Simulate email sending
     } catch (error) {
@@ -38,7 +48,6 @@ export class OtpService {
 
   async verifyOtp(email: string, enteredOtp: string): Promise<{ isValid: boolean; user?: Auth }> {
     try {
-      
       const storedHashedOtp = await this.redisClient.get(`${email}:otp`);
       if (!storedHashedOtp) {
         return { isValid: false };
@@ -50,11 +59,8 @@ export class OtpService {
         return { isValid: false };
       }
 
-
       // OTP is valid and used, clear both OTP and user data
-      await Promise.all([
-        this.redisClient.del(`${email}:otp`),
-      ]);
+      await this.redisClient.del(`${email}:otp`);
 
       return { isValid: true };
     } catch (error) {
@@ -68,6 +74,37 @@ export class OtpService {
       await this.redisClient.del(`${email}:otp`);
     } catch (error) {
       console.error('Error clearing OTP:', error);
+    }
+  }
+
+  // Implement the Redis access methods
+  async setRedisKey(key: string, value: string, expirationSeconds?: number): Promise<void> {
+    try {
+      if (expirationSeconds) {
+        await this.redisClient.setEx(key, expirationSeconds, value);
+      } else {
+        await this.redisClient.set(key, value);
+      }
+    } catch (error) {
+      console.error(`Error setting Redis key ${key}:`, error);
+      throw error;
+    }
+  }
+
+  async getRedisKey(key: string): Promise<string | null> {
+    try {
+      return await this.redisClient.get(key);
+    } catch (error) {
+      console.error(`Error getting Redis key ${key}:`, error);
+      return null;
+    }
+  }
+
+  async deleteRedisKey(key: string): Promise<void> {
+    try {
+      await this.redisClient.del(key);
+    } catch (error) {
+      console.error(`Error deleting Redis key ${key}:`, error);
     }
   }
 }

@@ -3,7 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export class EmailService {
+export interface EmailServiceInterface {
+  sendOtpEmail(email: string, otp: string): Promise<void>;
+}
+
+export class EmailService implements EmailServiceInterface {
   private transporter: nodemailer.Transporter;
 
   constructor() {

@@ -4,10 +4,12 @@ import cors from 'cors';
 import express from 'express';
 import { connectDB } from './infrastructure/database/mongoose';
 import userRoutes from './presentation/routes/userRoutes';
+import morgan from 'morgan';
 
 const app = express();
 
 // Middleware
+app.use(morgan('dev')); 
 app.use(express.json());
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'], // Add all your frontend URLs

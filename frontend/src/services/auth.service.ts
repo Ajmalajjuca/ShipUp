@@ -33,7 +33,7 @@ export const authService = {
   },
 
   googleAuth: async (credential: string) => {
-    const response = await authApi.post('/auth/google', { credential });
+    const response = await authApi.post('/auth/google-login', { credential });
     return response.data;
   },
 
@@ -54,6 +54,21 @@ export const authService = {
   
   logout: async (userId: string) => {
     const response = await authApi.post('/auth/logout', { userId });
+    return response.data;
+  },
+
+  verifyToken: async (token: string) => {
+    const response = await authApi.post('/auth/verify-token', { token });
+    return response.data;
+  },
+
+  verifyPartnerToken: async (email: string) => {
+    const response = await authApi.post('/auth/verify-partner-token', { email });
+    return response.data;
+  },
+
+  createTempToken: async (userId: string) => {
+    const response = await authApi.post('/auth/temp-token', { userId });
     return response.data;
   }
 }; 

@@ -4,6 +4,7 @@ import authRoutes from './presentation/routes/authRoutes';
 import { connectDB } from './infrastructure/database/mongoose';
 import dotenv from 'dotenv';
 import { OAuth2Client } from "google-auth-library";
+import morgan from 'morgan';
 
 
 dotenv.config();
@@ -27,6 +28,7 @@ export { client };
 // Middleware
 app.use(express.json()); // Add JSON body parser
 app.use(express.urlencoded({ extended: true })); // Add URL-encoded body parser
+app.use(morgan('dev')); 
 
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'],

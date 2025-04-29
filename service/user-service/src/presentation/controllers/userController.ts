@@ -28,6 +28,19 @@ import {
   DeleteUserResponse,
   UserStatusResponse
 } from '../../types/interfaces/responses';
+import { AddAddress } from '../../domain/use-cases/addAddress';
+import { AddressRepository } from '../../domain/repositories/addressRepository';
+import { 
+  AddAddressRequest, 
+  UpdateAddressRequest, 
+  DeleteAddressRequest, 
+  SetDefaultAddressRequest
+} from '../../types/interfaces/requests';
+import { 
+  AddressResponse, 
+  AddressesResponse, 
+  DeleteAddressResponse 
+} from '../../types/interfaces/responses';
 
 export class UserController {
   constructor(
@@ -35,10 +48,14 @@ export class UserController {
     private createUserUseCase: CreateUser,
     private getUserUseCase: GetUser,
     private updateUserUseCase: UpdateUser,
-    private deleteUserUseCase: DeleteUser
+    private deleteUserUseCase: DeleteUser,
+    private addressRepository: AddressRepository,
+    private addAddressUseCase: AddAddress
   ) {}
 
   async create(req: Request, res: Response): Promise<void> {
+    console.log('Creating user with data:', req.body); // Debugging line
+    
     try {
       const { userId, fullName, phone, email } = req.body as CreateUserRequest;
 
@@ -80,8 +97,10 @@ export class UserController {
   }
 
   async get(req: Request, res: Response): Promise<void> {
+    const { userId } = req.params;
+    console.log(`Getting user with ID: ====>`); // Debugging line
     try {
-      const { userId } = req.params;
+      
       
       if (!userId) {
         ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
@@ -89,6 +108,7 @@ export class UserController {
       }
 
       const user = await this.userRepository.findById(userId);
+      
       
       if (!user) {
         ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
@@ -593,5 +613,255 @@ export class UserController {
     }
     
     return false;
+  }
+
+  /**
+   * Add a new address for a user
+   */
+  async addAddress(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const addressData = req.body as AddAddressRequest;
+      console.log('Address Data:', addressData);
+      console.log('User ID:', userId);
+      
+      
+      if (!userId) {
+        ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
+        return;
+      }
+
+      // Validate required fields
+      if (!addressData.type || !addressData.street) {
+        ResponseHandler.validationError(res, 'Address type and street are required');
+        return;
+      }
+
+      const result = await this.addAddressUseCase.execute(userId, addressData);
+      
+      if (result.success) {
+        const response: AddressResponse = {
+          success: true,
+          message: 'Address added successfully',
+          address: result.address!
+        };
+        
+        ResponseHandler.created(res, response);
+      } else {
+        if (result.error === 'User not found') {
+          ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        } else {
+          ResponseHandler.error(
+            res,
+            result.error || ErrorMessage.INTERNAL_SERVER_ERROR,
+            StatusCode.BAD_REQUEST
+          );
+        }
+      }
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  /**
+   * Get all addresses for a user
+   */
+  async getUserAddresses(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        ResponseHandler.validationError(res, ErrorMessage.USER_ID_REQUIRED);
+        return;
+      }
+
+      // Check if user exists
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        return;
+      }
+
+      const addresses = await this.addressRepository.findByUserId(userId);
+      
+      const response: AddressesResponse = {
+        success: true,
+        addresses
+      };
+      
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  /**
+   * Get a specific address by ID
+   */
+  async getAddress(req: Request, res: Response): Promise<void> {
+    try {
+      const { addressId } = req.params;
+      
+      if (!addressId) {
+        ResponseHandler.validationError(res, 'Address ID is required');
+        return;
+      }
+
+      const address = await this.addressRepository.findById(addressId);
+      
+      if (!address) {
+        ResponseHandler.notFound(res, 'Address not found');
+        return;
+      }
+
+      const response: AddressResponse = {
+        success: true,
+        address
+      };
+      
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  /**
+   * Update an address
+   */
+  async updateAddress(req: Request, res: Response): Promise<void> {
+    try {
+      const { addressId } = req.params;
+      const updateData = req.body as UpdateAddressRequest;
+      
+      if (!addressId) {
+        ResponseHandler.validationError(res, 'Address ID is required');
+        return;
+      }
+
+      // Check if address exists
+      const existingAddress = await this.addressRepository.findById(addressId);
+      if (!existingAddress) {
+        ResponseHandler.notFound(res, 'Address not found');
+        return;
+      }
+
+      // Make sure the user owns this address (security check)
+      if (req.user && existingAddress.userId !== req.user.userId) {
+        ResponseHandler.forbidden(res, 'You do not have permission to update this address');
+        return;
+      }
+
+      const updatedAddress = await this.addressRepository.update(addressId, updateData);
+      
+      if (!updatedAddress) {
+        ResponseHandler.notFound(res, 'Address not found');
+        return;
+      }
+
+      const response: AddressResponse = {
+        success: true,
+        message: 'Address updated successfully',
+        address: updatedAddress
+      };
+      
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  /**
+   * Delete an address
+   */
+  async deleteAddress(req: Request, res: Response): Promise<void> {
+    try {
+      const { addressId } = req.params;
+      
+      if (!addressId) {
+        ResponseHandler.validationError(res, 'Address ID is required');
+        return;
+      }
+
+      // Check if address exists
+      const existingAddress = await this.addressRepository.findById(addressId);
+      if (!existingAddress) {
+        ResponseHandler.notFound(res, 'Address not found');
+        return;
+      }
+
+      // Make sure the user owns this address (security check)
+      if (req.user && existingAddress.userId !== req.user.userId) {
+        ResponseHandler.forbidden(res, 'You do not have permission to delete this address');
+        return;
+      }
+
+      const result = await this.addressRepository.delete(addressId);
+      
+      if (!result) {
+        ResponseHandler.notFound(res, 'Address not found');
+        return;
+      }
+
+      const response: DeleteAddressResponse = {
+        success: true,
+        message: 'Address deleted successfully',
+        addressId
+      };
+      
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  /**
+   * Set an address as default
+   */
+  async setDefaultAddress(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId, addressId } = req.params;
+      
+      if (!userId || !addressId) {
+        ResponseHandler.validationError(res, 'User ID and Address ID are required');
+        return;
+      }
+
+      // Check if user exists
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        return;
+      }
+
+      // Check if address exists
+      const existingAddress = await this.addressRepository.findById(addressId);
+      if (!existingAddress) {
+        ResponseHandler.notFound(res, 'Address not found');
+        return;
+      }
+
+      // Make sure the user owns this address (security check)
+      if (existingAddress.userId !== userId) {
+        ResponseHandler.forbidden(res, 'This address does not belong to the specified user');
+        return;
+      }
+
+      const updatedAddress = await this.addressRepository.setDefault(userId, addressId);
+      
+      if (!updatedAddress) {
+        ResponseHandler.notFound(res, 'Address not found');
+        return;
+      }
+
+      const response: AddressResponse = {
+        success: true,
+        message: 'Address set as default successfully',
+        address: updatedAddress
+      };
+      
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
   }
 }

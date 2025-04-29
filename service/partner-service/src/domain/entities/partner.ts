@@ -1,4 +1,4 @@
-export interface Driver {
+export interface Partner {
   partnerId: string;
   fullName: string;
   mobileNumber: string;
@@ -35,6 +35,8 @@ export interface Driver {
   // Status flags
   isActive: boolean;
   isVerified: boolean;
+  isAvailable: boolean;
+  lastOnline?: Date;
   bankDetailsCompleted: boolean;
   personalDocumentsCompleted: boolean;
   vehicleDetailsCompleted: boolean;
@@ -48,10 +50,15 @@ export interface Driver {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  };
 }
 
-// Factory function to create a new Driver
-export const createDriver = (data: {
+// Factory function to create a new Partner
+export const createPartner = (data: {
   partnerId: string;
   fullName: string;
   mobileNumber: string;
@@ -79,12 +86,13 @@ export const createDriver = (data: {
     registration?: { frontUrl?: string; backUrl?: string };
     permit?: { frontUrl?: string; backUrl?: string };
   };
-}): Driver => {
+}): Partner => {
   return {
     status: true,
     ...data,
     isActive: true,
     isVerified: false,
+    isAvailable: false,
     bankDetailsCompleted: false,
     personalDocumentsCompleted: false,
     vehicleDetailsCompleted: false,

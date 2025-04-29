@@ -36,4 +36,39 @@ export interface UpdateProfileRequest {
 
 export interface GetUserByEmailRequest {
   email: string;
+}
+
+export interface AddAddressRequest {
+  type: 'home' | 'work' | 'other';
+  street: string;
+  isDefault?: boolean;
+  latitude?: number;
+  longitude?: number;
+  streetNumber?: string;
+  buildingNumber?: string;
+  floorNumber?: string;
+  contactName?: string;
+  contactPhone?: string;
+}
+
+export interface UpdateAddressRequest {
+  addressId: string;
+  type?: 'home' | 'work' | 'other';
+  street?: string;
+  isDefault?: boolean;
+  latitude?: number;
+  longitude?: number;
+  streetNumber?: string;
+  buildingNumber?: string;
+  floorNumber?: string;
+  contactName?: string;
+  contactPhone?: string;
+}
+
+export interface DeleteAddressRequest {
+  addressId: string;
+}
+
+export interface SetDefaultAddressRequest {
+  addressId: string;
 } 

@@ -29,6 +29,8 @@ export const authMiddleware = async (
   res: Response,
   next: NextFunction
 ) => {
+  console.log('Auth Middleware:=>',req.headers.authorization); // Debugging line
+  
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {

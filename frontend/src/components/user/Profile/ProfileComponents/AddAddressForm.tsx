@@ -1,24 +1,234 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Home, Briefcase, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Home, Briefcase, MapPin, Navigation, Pencil, MapPinOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ProfileLayout from '../ProfileLayout';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
+import 'leaflet-draw';
+import { userService } from '../../../../services/user.service';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../Redux/store';
+
+// Required for Leaflet markers to work properly
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Remove Leaflet namespace declaration that's causing errors
 
 interface AddressFormData {
   type: 'home' | 'work' | 'other';
   street: string;
   isDefault: boolean;
+  latitude?: number;
+  longitude?: number;
+  streetNumber?: string;
+  buildingNumber?: string;
+  floorNumber?: string;
+  contactName?: string;
+  contactPhone?: string;
 }
 
 const AddAddressForm: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const userId = user?.userId || user?._id;
   const [formData, setFormData] = useState<AddressFormData>({
     type: 'home',
     street: '',
     isDefault: false,
+    latitude: undefined,
+    longitude: undefined,
+    streetNumber: '',
+    buildingNumber: '',
+    floorNumber: '',
+    contactName: '',
+    contactPhone: ''
   });
   const [errors, setErrors] = useState<Partial<AddressFormData>>({});
   const [loading, setLoading] = useState(false);
+  const [addressFromMap, setAddressFromMap] = useState<string>('');
+
+  // Map references
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const drawControlRef = useRef<any>(null);
+  const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
+
+  // Fix Leaflet default icon issues
+  useEffect(() => {
+    // Fix Leaflet default icon issues
+    const DefaultIcon = L.Icon.extend({
+      options: {
+        iconUrl: icon,
+        shadowUrl: iconShadow,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      }
+    });
+    
+    L.Marker.prototype.options.icon = new DefaultIcon();
+  }, []);
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    // Initialize the map
+    const map = L.map(mapContainerRef.current).setView([20.5937, 78.9629], 5); // Default to India
+
+    // Add OSM tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Initialize feature group for drawn items
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    drawnItemsRef.current = drawnItems;
+
+    // Initialize draw control
+    const drawControl = new (L.Control as any).Draw({
+      draw: {
+        polyline: {},
+        polygon: {},
+        circle: {},
+        rectangle: {},
+        marker: {}
+      },
+      edit: {
+        featureGroup: drawnItems,
+        remove: true
+      }
+    });
+    map.addControl(drawControl);
+    drawControlRef.current = drawControl;
+
+    // Event handler for draw:created
+    map.on('draw:created', (e: any) => {
+      const layer = e.layer;
+      drawnItems.addLayer(layer);
+
+      // If a marker is created, update form data with coordinates
+      if (e.layerType === 'marker') {
+        const latLng = layer.getLatLng();
+        updateLocationData(latLng);
+      }
+    });
+
+    // Event handler for clicks on the map to place markers
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      handleMapClick(e.latlng);
+    });
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Handle map click to place marker
+  const handleMapClick = (latLng: L.LatLng) => {
+    if (markerRef.current) {
+      // Remove existing marker
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+
+    // Create and add a new marker
+    const marker = L.marker(latLng).addTo(mapRef.current!);
+    markerRef.current = marker;
+
+    // Update form data with the new coordinates
+    updateLocationData(latLng);
+  };
+
+  // Update location data and fetch address from coordinates
+  const updateLocationData = async (latLng: L.LatLng) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: latLng.lat,
+      longitude: latLng.lng
+    }));
+
+    try {
+      // Fetch address from coordinates using Nominatim API (OpenStreetMap)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.lat}&lon=${latLng.lng}&addressdetails=1`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const address = data.display_name || '';
+        setAddressFromMap(address);
+        
+        // Extract address components from the response
+        const { address: addressDetails } = data;
+        
+        // Update form data with address details
+        setFormData(prev => ({
+          ...prev,
+          street: address,
+          // house_number can be used as building number
+          buildingNumber: addressDetails?.house_number || '',
+          // road can be used with street number
+          streetNumber: addressDetails?.road ? `${addressDetails.road}` : ''
+        }));
+        
+        // Clear any previous errors
+        if (errors.street) {
+          setErrors(prev => ({ ...prev, street: undefined }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching address:', error);
+      toast.error('Could not fetch address from location');
+    }
+  };
+
+  // Get current location
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const latLng = new L.LatLng(latitude, longitude);
+          
+          // Center map on current location
+          mapRef.current?.setView(latLng, 15);
+          
+          // Place a marker at current location
+          handleMapClick(latLng);
+          
+          toast.success('Current location detected');
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast.error('Could not get your current location. Please check your browser permissions.');
+        }
+      );
+    } else {
+      toast.error('Geolocation is not supported by your browser');
+    }
+  };
+
+  // Clear all drawn items and markers
+  const clearMapItems = () => {
+    if (drawnItemsRef.current) {
+      drawnItemsRef.current.clearLayers();
+    }
+    
+    if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -45,6 +255,16 @@ const AddAddressForm: React.FC = () => {
     if (!formData.street.trim()) {
       newErrors.street = 'Address is required';
     }
+
+    if (!formData.contactName?.trim()) {
+      newErrors.contactName = 'Contact person name is required';
+    }
+
+    if (!formData.contactPhone?.trim()) {
+      newErrors.contactPhone = 'Contact phone number is required';
+    } else if (!/^[6-9]\d{9}$/.test(formData.contactPhone)) {
+      newErrors.contactPhone = 'Please enter a valid 10-digit Indian phone number';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -59,11 +279,19 @@ const AddAddressForm: React.FC = () => {
     
     try {
       setLoading(true);
-      // Here you would call your API to save the address
-      // const response = await addressService.addAddress(formData);
+      const response = await userService.addAddress(userId, {
+        ...formData,
+        latitude: formData.latitude || undefined,
+        longitude: formData.longitude || undefined,
+        streetNumber: formData.streetNumber || undefined,
+        buildingNumber: formData.buildingNumber || undefined, 
+        floorNumber: formData.floorNumber || undefined,
+        contactName: formData.contactName || undefined,
+        contactPhone: formData.contactPhone || undefined
+      });
       
-      // For now, we'll just simulate success
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API call
+      console.log('Address added:', response);
+      
       toast.success('Address added successfully!');
       navigate('/address');
     } catch (error) {
@@ -159,10 +387,18 @@ const AddAddressForm: React.FC = () => {
                       type="text"
                       id="contactName"
                       name="contactName"
-                      className="w-full pl-12 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 border-gray-300"
+                      value={formData.contactName}
+                      onChange={handleChange}
+                      className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 ${
+                        errors.contactName ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="Enter contact person name"
+                      required
                     />
                   </div>
+                  {errors.contactName && (
+                    <p className="mt-1 text-sm text-red-500">{errors.contactName}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -180,11 +416,19 @@ const AddAddressForm: React.FC = () => {
                       type="tel"
                       id="contactPhone"
                       name="contactPhone"
-                      className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 border-gray-300"
+                      value={formData.contactPhone}
+                      onChange={handleChange}
+                      className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 ${
+                        errors.contactPhone ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="Enter phone number"
                       maxLength={10}
+                      required
                     />
                   </div>
+                  {errors.contactPhone && (
+                    <p className="mt-1 text-sm text-red-500">{errors.contactPhone}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -226,6 +470,8 @@ const AddAddressForm: React.FC = () => {
                   type="text"
                   id="streetNumber"
                   name="streetNumber"
+                  value={formData.streetNumber}
+                  onChange={handleChange}
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 border-gray-300"
                   placeholder="Enter street number"
                 />
@@ -239,22 +485,73 @@ const AddAddressForm: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
-                    placeholder="House no."
+                    id="buildingNumber"
+                    name="buildingNumber"
+                    value={formData.buildingNumber}
+                    onChange={handleChange}
                     className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 border-gray-300"
+                    placeholder="House no."
                   />
                   <input
                     type="text"
-                    placeholder="Floor no."
+                    id="floorNumber"
+                    name="floorNumber"
+                    value={formData.floorNumber}
+                    onChange={handleChange}
                     className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 border-gray-300"
+                    placeholder="Floor no."
                   />
                 </div>
               </div>
 
             </div>
             
-            {/* Map placeholder */}
-            <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden h-64 bg-gray-100 flex items-center justify-center">
-              <p className="text-gray-500">Map will display here</p>
+            {/* Map container with controls */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-base font-semibold text-gray-700">Map Location</h2>
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={getCurrentLocation}
+                    className="flex items-center px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    title="Use your current location"
+                  >
+                    <Navigation size={16} className="mr-1" />
+                    <span className="text-sm">Current Location</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearMapItems}
+                    className="flex items-center px-3 py-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                    title="Clear all markers and drawings"
+                  >
+                    <MapPinOff size={16} className="mr-1" />
+                    <span className="text-sm">Clear</span>
+                  </button>
+                </div>
+              </div>
+              <div className="relative border border-gray-200 rounded-lg overflow-hidden">
+                <div 
+                  ref={mapContainerRef} 
+                  className="h-64 w-full"
+                ></div>
+                <div className="absolute bottom-2 left-2 right-2 bg-white p-2 rounded-lg shadow-md text-sm text-gray-700">
+                  <p className="font-medium mb-1">Selected Address:</p>
+                  <p className="truncate">
+                    {addressFromMap || 'No address selected. Click on the map to place a marker.'}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                <Pencil size={14} className="inline mr-1" />
+                Click on the map to place a marker, or use drawing tools to mark specific areas.
+              </p>
+              {formData.latitude && formData.longitude && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                </p>
+              )}
             </div>
             
             {/* Set as default checkbox */}

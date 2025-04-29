@@ -56,6 +56,9 @@ export class OtpController {
   }
 
   async verifyOtp(req: Request, res: Response): Promise<void> {
+    console.log('Verifying OTP...');
+    console.log('Request body:', req.body);
+    
     try {
       const { email, otp, newPassword } = req.body as VerifyOtpRequest;
       
@@ -168,16 +171,18 @@ export class OtpController {
     try {
       const { email } = req.body as OtpRequest;
       
+      
       if (!email) {
         ResponseHandler.validationError(res, ErrorMessage.EMAIL_REQUIRED);
         return;
       }
-
+      
       const authUser = await this.authRepository.findByEmail(email);
       if (!authUser) {
         ResponseHandler.notFound(res, 'Email not registered');
         return;
       }
+      console.log('Requesting login OTP for email:', authUser);
 
       try {
         // Check if it's a driver account
@@ -253,7 +258,7 @@ export class OtpController {
       }
 
       // Verify partner role
-      if (partner.role !== 'driver') {
+      if (partner.role !== 'partner') {
         ResponseHandler.error(
           res, 
           "Not authorized as partner", 
@@ -263,10 +268,10 @@ export class OtpController {
       }
 
       // Generate token
-      const token = this.authService.generateToken(partner.userId, email, 'driver');
+      const token = this.authService.generateToken(partner.userId, email, 'partner');
       
       // Generate refresh token
-      const refreshToken = this.authService.generateRefreshToken(partner.userId, email, 'driver');
+      const refreshToken = this.authService.generateRefreshToken(partner.userId, email, 'partner');
       
       // Calculate refresh token expiry
       const refreshTokenExpiry = this.authService.getRefreshTokenExpiry();
@@ -284,7 +289,7 @@ export class OtpController {
         refreshToken,
         partnerId: partner.userId,
         email: partner.email,
-        role: 'driver'
+        role: 'partner'
       };
       
       ResponseHandler.success(res, response);

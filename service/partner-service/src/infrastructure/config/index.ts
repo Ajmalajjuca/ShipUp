@@ -1,23 +1,33 @@
 import dotenv from 'dotenv';
 
+// Load environment variables from .env file
 dotenv.config();
 
 export const config = {
   server: {
-    port: process.env.PORT || 3003,
-    nodeEnv: process.env.NODE_ENV || 'development'
+    port: process.env.PORT || '3003',
+    env: process.env.NODE_ENV || 'development',
   },
   database: {
-    uri: process.env.MONGO_URI || 'mongodb://localhost:27017/partner-service'
+    url: process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/partner_service_db',
   },
-  jwt: {
-    secret: process.env.JWT_SECRET || 'your-secret-key',
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+  services: {
+    auth: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
+    user: process.env.USER_SERVICE_URL || 'http://localhost:3002',
+  },
+  redis: {
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    password: process.env.REDIS_PASSWORD || undefined,
+  },
+  cors: {
+    origins: process.env.CORS_ORIGINS || '*',
   },
   aws: {
-    region: process.env.AWS_REGION,
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    bucketName: process.env.AWS_PARTNER_BUCKET_NAME
+    region: process.env.AWS_REGION || 'us-east-1',
+    s3: {
+      bucket: process.env.AWS_S3_BUCKET || process.env.AWS_PARTNER_BUCKET_NAME || 'shipup-partners',
+    },
   }
 }; 

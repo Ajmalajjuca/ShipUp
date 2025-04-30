@@ -29,9 +29,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       // In production, you would call your auth service to validate the token
       
       // Option 1: Use environment variable for auth service URL
-      const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001/api/auth/verify-token';
+      const authServiceUrl = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
       
-      const response = await axios.post(authServiceUrl, { token });
+      const response = await axios.post(`${authServiceUrl}/auth/verify-token`, {},{headers: { Authorization: `Bearer ${token}` }});
       
       if (response.data.success) {
         // Set user info from the verified token

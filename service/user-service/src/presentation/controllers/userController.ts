@@ -98,7 +98,6 @@ export class UserController {
 
   async get(req: Request, res: Response): Promise<void> {
     const { userId } = req.params;
-    console.log(`Getting user with ID: ====>`); // Debugging line
     try {
       
       

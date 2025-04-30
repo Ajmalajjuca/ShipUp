@@ -9,8 +9,8 @@ export interface ActiveOrder {
   userId: string;
   orderId: string;
   driverId: string;
-  pickupAddress: Address;
-  dropoffAddress: Address;
+  pickupLocation: Address;
+  dropLocation: Address;
   status: 'driver_assigned' | 'driver_arrived' | 'picked_up' | 'completed';
   timestamp: number;
   vehicle: string | null;

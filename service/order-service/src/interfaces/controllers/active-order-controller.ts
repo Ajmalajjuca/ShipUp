@@ -14,6 +14,7 @@ export class ActiveOrderController {
     try {
       const { userId } = req.params;
       const orderData = req.body;
+      
       const ttl = req.body.ttl ? parseInt(req.body.ttl) : undefined;
       
       // Add userId to the order data
@@ -41,6 +42,7 @@ export class ActiveOrderController {
       const { userId } = req.params;
       
       const activeOrder = await this.getActiveOrderUseCase.execute(userId);
+      
       
        res.status(200).json({
         success: true,

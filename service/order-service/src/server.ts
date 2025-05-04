@@ -5,6 +5,7 @@ import { routes } from './frameworks/webserver/routes';
 import { errorHandler } from './frameworks/webserver/middlewares/error-handler';
 import { connectDB, connectRedis } from './frameworks/database/connections';
 import dotenv from 'dotenv';
+import morgan from 'morgan';
 
 dotenv.config();
 
@@ -14,6 +15,8 @@ export const startServer = () => {
 
   // Set up middleware
   app.use(cors());
+
+  app.use(morgan('dev')); // Logging middleware for development
   
   // Increase JSON payload size limit to 50MB
   app.use(express.json({ limit: '50mb' }));

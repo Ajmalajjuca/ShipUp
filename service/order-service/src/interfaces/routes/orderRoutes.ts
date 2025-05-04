@@ -39,6 +39,13 @@ export const configureOrderRoutes = (router: Router) => {
    */
   router.put('/orders/:id', orderController.updateOrder);
   
+ /**
+   * @route PATCH /api/orders/:id
+   * @description Update an order (partial update)
+   * @access Public (in a real app, would be authenticated)
+   */
+  router.patch('/orders/:id', orderController.updateOrder);
+
   /**
    * @route PATCH /api/orders/:id/status
    * @description Update order status

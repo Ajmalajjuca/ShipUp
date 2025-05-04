@@ -7,6 +7,7 @@ export interface CreateOrderDTO {
   userId: string;
   price: number;
   vehicleId: string;
+  vehicleName: string;
   basePrice: number;
   deliveryPrice: number;
   commission: number;
@@ -54,6 +55,7 @@ export default class OrderUseCase {
       const order = await this.orderRepository.create({
         customerId: orderInput.userId,
         vehicleId: orderInput.vehicleId,
+        vehicleName: orderInput.vehicleName,
         basePrice: orderInput.basePrice,
         deliveryPrice: orderInput.deliveryPrice,
         commission: orderInput.commission,

@@ -99,6 +99,8 @@ const trackingSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   customerId: { type: String, required: true, index: true },
   vehicleId: { type: String, required: true },
+  driverId: { type: String },
+  vehicleName:{type:String, required:true},
   totalAmount: { type: Number, required: true },
   basePrice: { type: Number, required: true },
   deliveryPrice: { type: Number, required: true },

@@ -78,8 +78,10 @@ export interface Order {
   id: string;
   customerId: string;
   totalAmount: number;
+  driverId?: string; 
   status: OrderStatus;
   vehicleId: string;
+  vehicleName: string;
   basePrice: number;
   deliveryPrice: number;
   commission: number;

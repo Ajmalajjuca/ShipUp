@@ -10,7 +10,9 @@ export class MongoOrderRepository implements OrderRepository {
       const newOrder = new OrderModel({
         customerId: order.customerId,
         totalAmount: order.totalAmount,
+        driverId: order.driverId,
         vehicleId: order.vehicleId,
+        vehicleName: order.vehicleName,
         basePrice: order.basePrice,
         deliveryPrice: order.deliveryPrice,
         commission: order.commission,
@@ -289,9 +291,11 @@ export class MongoOrderRepository implements OrderRepository {
     return {
       id: order.id || order._id.toString(),
       customerId: order.customerId,
+      driverId: order.driverId,
       totalAmount: order.totalAmount,
       status: order.status,
       vehicleId: order.vehicleId,
+      vehicleName: order.vehicleName,
       basePrice: order.basePrice,
       deliveryPrice: order.deliveryPrice,
       commission: order.commission,

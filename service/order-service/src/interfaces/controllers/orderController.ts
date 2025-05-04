@@ -12,7 +12,9 @@ export default class OrderController {
     this.orderUseCase = new OrderUseCase(orderRepository);
   }
 
-  createOrder = async (req: Request, res: Response) => {    
+  createOrder = async (req: Request, res: Response) => {  
+    console.log('Creating order with input:', req.body);
+      
     try {
       const order = await this.orderUseCase.createOrder(req.body);
       res.status(201).json(order);
@@ -61,6 +63,8 @@ export default class OrderController {
   };
 
   updateOrder = async (req: Request, res: Response) => {
+    console.log('Updating order with input:', req.body);
+    
     try {
       const order = await this.orderUseCase.updateOrder(req.params.id, req.body);
       if (!order) {

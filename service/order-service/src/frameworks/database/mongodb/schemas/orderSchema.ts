@@ -3,7 +3,7 @@ import { OrderStatus, PaymentStatus, TrackingStatus } from '../../../../domain/e
 
 // Define runtime enum for PaymentMethod
 const PaymentMethodEnum = {
-  RAZORPAY: 'razorpay',
+  STRIPE: 'stripe',
   WALLET: 'wallet',
   CASH: 'cash',
   UPI: 'upi'
@@ -50,7 +50,7 @@ const paymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   method: { 
     type: String, 
-    enum: ['razorpay', 'wallet', 'cash', 'upi'],
+    enum: ['stripe', 'wallet', 'cash', 'upi'],
     required: true 
   },
   status: { 
@@ -117,6 +117,12 @@ const orderSchema = new mongoose.Schema({
     type: String, 
     enum: Object.values(PaymentMethodEnum),
     required: true
+  },
+  paymentStatus:{
+    type:String,
+    enum:  ['pending', 'paid', 'not_required', 'failed', 'refunded'],
+    require:true
+
   },
   status: { 
     type: String, 

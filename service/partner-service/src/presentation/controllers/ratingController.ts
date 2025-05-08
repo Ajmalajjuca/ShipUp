@@ -20,6 +20,7 @@ export const ratingController = {
    * Creates a new rating for a driver
    */
   async createRating(req: Request, res: Response): Promise<void> {
+    
     try {
       const { driverId, userId, orderId, rating, feedback, quickReviews } = req.body;
 

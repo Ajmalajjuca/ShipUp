@@ -1,5 +1,5 @@
 import { OrderRepository, PaymentData } from '../../domain/repositories/orderRepository';
-import { Order, OrderItem, OrderStatus, PaymentMethod } from '../../domain/entities/Order';
+import { Order, OrderItem, OrderStatus, PaymentMethod, PaymentStatus } from '../../domain/entities/Order';
 import { calculateTotalAmount } from './order/orderUtils';
 
 // Create order input DTO
@@ -46,7 +46,6 @@ export default class OrderUseCase {
 
   // Create a new order
   async createOrder(orderInput: CreateOrderDTO): Promise<Order> {
-    console.log('Creating order with input:', orderInput);
     
     try {
       // Calculate total amount
@@ -64,6 +63,7 @@ export default class OrderUseCase {
         estimatedTime: orderInput.estimatedTime,
         deliveryType: orderInput.deliveryType,
         paymentMethod: orderInput.paymentMethod as PaymentMethod,
+        paymentStatus:orderInput.paymentStatus as PaymentStatus,
         totalAmount: orderInput.price,
         status: OrderStatus.PENDING,
         pickupAddress: orderInput.pickupAddress,
@@ -103,6 +103,16 @@ export default class OrderUseCase {
       return await this.orderRepository.findByUserId(userId);
     } catch (error) {
       console.error(`Error in getOrdersByUserId use case for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // Get orders by user ID
+  async getOrdersByDriversId(partnerId: string): Promise<Order[]> {
+    try {
+      return await this.orderRepository.findByDriversId(partnerId);
+    } catch (error) {
+      console.error(`Error in getOrdersByDriversId use case for user ${partnerId}:`, error);
       throw error;
     }
   }

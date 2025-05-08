@@ -28,9 +28,7 @@ export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  console.log('Auth Middleware:=>',req.headers.authorization); // Debugging line
-  
+) => {  
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -110,3 +108,32 @@ export const authMiddleware = async (
     return;
   }
 }; 
+
+
+export function isAdmin(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      ResponseHandler.unauthorized(res, ErrorMessage.AUTH_HEADER_REQUIRED, ErrorCode.AUTH_HEADER_REQUIRED);
+      return;
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      ResponseHandler.unauthorized(res, 'Invalid token format', 'INVALID_TOKEN_FORMAT');
+      return;
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+      const decoded = jwt.verify(token, jwtSecret) as {
+        userId: string;
+        email: string;
+        role: string;
+      };
+
+  if (decoded.role !== 'admin') {
+     res.status(403).json({ message: 'Access denied. Admins only.' });
+     return
+  }
+
+  next();
+}

@@ -12,9 +12,7 @@ export default class OrderController {
     this.orderUseCase = new OrderUseCase(orderRepository);
   }
 
-  createOrder = async (req: Request, res: Response) => {  
-    console.log('Creating order with input:', req.body);
-      
+  createOrder = async (req: Request, res: Response) => {        
     try {
       const order = await this.orderUseCase.createOrder(req.body);
       res.status(201).json(order);
@@ -54,6 +52,17 @@ export default class OrderController {
   getOrdersByUserId = async (req: Request, res: Response) => {
     try {
       const orders = await this.orderUseCase.getOrdersByUserId(req.params.userId);
+      res.status(200).json(orders);
+      return
+    } catch (error) {
+      res.status(500).json({ error: (error as Error).message });
+      return
+    }
+  };
+
+  getOrdersByDriversId = async (req: Request, res: Response) => {
+    try {
+      const orders = await this.orderUseCase.getOrdersByDriversId(req.params.partnerId);
       res.status(200).json(orders);
       return
     } catch (error) {
@@ -155,6 +164,7 @@ export default class OrderController {
       return
     }
   };
+  
 }
 
 export interface OrderControllerDependencies {

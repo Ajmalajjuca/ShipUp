@@ -833,7 +833,6 @@ export const partnerController = {
     try {
       const { partnerId } = req.params;
       const { location } = req.body;
-      console.log('Location==>:', location);
       
 
       // Validate location data

@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { userController } from '../../infrastructure/di/container';
-import { authMiddleware } from '../middlewares/authMiddleware';
+import { authMiddleware, isAdmin } from '../middlewares/authMiddleware';
 import { s3Upload } from '../../infrastructure/config/s3Config';
 import { ResponseHandler } from '../utils/responseHandler';
 import { ErrorMessage } from '../../types/enums/ErrorMessage';
@@ -35,7 +35,7 @@ const validateAddressId = (req: Request, res: Response, next: NextFunction) => {
 router.post('/users', userController.create.bind(userController));
 router.get('/users/:userId', userController.get.bind(userController));
 router.get('/users/by-email/:email', userController.getByEmail.bind(userController));
-router.get('/users', userController.getAll.bind(userController));
+router.get('/users', isAdmin,userController.getAll.bind(userController));
 
 
 // Protected routes - require authentication

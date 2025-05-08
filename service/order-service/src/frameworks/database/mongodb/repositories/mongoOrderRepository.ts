@@ -21,6 +21,7 @@ export class MongoOrderRepository implements OrderRepository {
         estimatedTime: order.estimatedTime,
         deliveryType: order.deliveryType,
         paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
         status: order.status || OrderStatus.PENDING,
         pickupAddress: order.pickupAddress,
         dropoffAddress: order.dropoffAddress,
@@ -57,6 +58,16 @@ export class MongoOrderRepository implements OrderRepository {
       return orders.map(order => this.mapToOrderEntity(order));
     } catch (error) {
       console.error(`Error finding orders for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async findByDriversId(partnerId: string): Promise<Order[]> {
+    try {
+      const orders = await OrderModel.find({ driverId: partnerId }).sort({ createdAt: -1 });      
+      return orders.map(order => this.mapToOrderEntity(order));
+    } catch (error) {
+      console.error(`Error finding orders for user ${partnerId}:`, error);
       throw error;
     }
   }
@@ -304,6 +315,7 @@ export class MongoOrderRepository implements OrderRepository {
       estimatedTime: order.estimatedTime, 
       deliveryType: order.deliveryType,
       paymentMethod: order.paymentMethod,
+      paymentStatus:order.paymentStatus,
       pickupAddress: order.pickupAddress,
       dropoffAddress: order.dropoffAddress,
       createdAt: order.createdAt,

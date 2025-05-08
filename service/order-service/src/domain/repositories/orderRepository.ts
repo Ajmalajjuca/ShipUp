@@ -13,6 +13,7 @@ export interface OrderRepository {
   findAll(): Promise<Order[]>;
   findById(id: string): Promise<Order | null>;
   findByUserId(userId: string): Promise<Order[]>;
+  findByDriversId(partnerId: string): Promise<Order[]>;
   update(id: string, orderData: Partial<Order>): Promise<Order | null>;
   updateStatus(id: string, status: string, description?: string): Promise<Order | null>;
   processPayment(paymentData: PaymentData): Promise<Order | null>;

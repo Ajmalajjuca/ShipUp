@@ -1,5 +1,5 @@
 // Order payment methods
-export type PaymentMethod = 'razorpay' | 'wallet' | 'cash' | 'upi';
+export type PaymentMethod = 'stripe' | 'wallet' | 'cash' | 'upi';
 
 // Order payment status
 export type PaymentStatus = 'pending' | 'paid' | 'not_required' | 'failed' | 'refunded';
@@ -90,6 +90,7 @@ export interface Order {
   estimatedTime: number;
   deliveryType: string;
   paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
   pickupAddress: Address;
   dropoffAddress: Address;
   createdAt: Date;
@@ -108,3 +109,33 @@ export interface OrderInput {
   paymentMethod: PaymentMethod;
   paymentStatus?: PaymentStatus;
 } 
+
+export class OrderEntity {
+  private order: Order;
+
+  constructor(order: Order) {
+    this.order = order;
+  }
+
+  public getOrderId(): string {
+    return this.order.id;
+  }
+
+  public getPrice(): number {
+    return this.order.totalAmount;
+  }
+
+  public getPaymentStatus(): string {
+    console.log('entyty===>',this.order);
+    
+    return this.order.paymentStatus;
+  }
+
+  public updatePaymentStatus(status: 'pending' | 'paid' | 'not_required' | 'failed' | 'refunded'): void {
+    this.order.paymentStatus = status;
+  }
+
+  public toJSON(): Order {
+    return this.order;
+  }
+}

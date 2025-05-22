@@ -3,6 +3,7 @@ import { Order } from '../../domain/entities/Order';
 import { PaymentData } from '../../domain/repositories/orderRepository';
 import OrderUseCase, { CreateOrderDTO } from '../../application/use-cases/orderUseCase';
 import { MongoOrderRepository } from '../../frameworks/database/mongodb/repositories/mongoOrderRepository';
+import { StatusCode } from '../../types/StatusCode';
 
 export default class OrderController {
   private orderUseCase: OrderUseCase;
@@ -15,10 +16,10 @@ export default class OrderController {
   createOrder = async (req: Request, res: Response) => {        
     try {
       const order = await this.orderUseCase.createOrder(req.body);
-      res.status(201).json(order);
+      res.status(StatusCode.CREATED).json(order);
       return
     } catch (error) {
-       res.status(500).json({ error: (error as Error).message });
+       res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
        return
     }
   };
@@ -26,25 +27,27 @@ export default class OrderController {
   getAllOrders = async (req: Request, res: Response) => {
     try {
       const orders = await this.orderUseCase.getAllOrders();
-       res.status(200).json(orders);
+       res.status(StatusCode.OK).json(orders);
        return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
 
   getOrderById = async (req: Request, res: Response) => {
+    console.log('req.params.id===>',req.params.id);
+    
     try {
       const order = await this.orderUseCase.getOrderById(req.params.id);
       if (!order) {
-        res.status(404).json({ message: 'Order not found' });
+        res.status(StatusCode.NOT_FOUND).json({ message: 'Order not found' });
         return
       }
-      res.status(200).json(order);
+      res.status(StatusCode.OK).json(order);
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
@@ -52,22 +55,31 @@ export default class OrderController {
   getOrdersByUserId = async (req: Request, res: Response) => {
     try {
       const orders = await this.orderUseCase.getOrdersByUserId(req.params.userId);
-      res.status(200).json(orders);
+      res.status(StatusCode.OK).json(orders);
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
 
   getOrdersByDriversId = async (req: Request, res: Response) => {
     try {
-      const orders = await this.orderUseCase.getOrdersByDriversId(req.params.partnerId);
-      res.status(200).json(orders);
-      return
+      const { partnerId } = req.params;
+      const { page = '1', limit = '10', status, search } = req.query;
+
+      const ordersResponse = await this.orderUseCase.getOrdersByDriversId(
+        partnerId,
+        parseInt(page as string),
+        parseInt(limit as string),
+        status as string | undefined,
+        search as string | undefined
+      );
+
+      res.status(StatusCode.OK).json(ordersResponse);
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
-      return
+      console.error(`Error in getOrdersByDriversId controller for partner ${req.params.partnerId}:`, error);
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
     }
   };
 
@@ -77,13 +89,13 @@ export default class OrderController {
     try {
       const order = await this.orderUseCase.updateOrder(req.params.id, req.body);
       if (!order) {
-        res.status(404).json({ message: 'Order not found' });
+        res.status(StatusCode.NOT_FOUND).json({ message: 'Order not found' });
         return
       }
-      res.status(200).json(order);
+      res.status(StatusCode.OK).json(order);
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
@@ -93,13 +105,13 @@ export default class OrderController {
       const { status, description } = req.body;
       const order = await this.orderUseCase.updateOrderStatus(req.params.id, status, description);
       if (!order) {
-        res.status(404).json({ message: 'Order not found' });
+        res.status(StatusCode.NOT_FOUND).json({ message: 'Order not found' });
         return
       }
-      res.status(200).json(order);
+      res.status(StatusCode.OK).json(order);
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
@@ -109,13 +121,13 @@ export default class OrderController {
       const paymentData: PaymentData = req.body;
       const order = await this.orderUseCase.processPayment(paymentData);
       if (!order) {
-        res.status(404).json({ message: 'Order not found' });
+        res.status(StatusCode.NOT_FOUND).json({ message: 'Order not found' });
         return
       }
-      res.status(200).json(order);
+      res.status(StatusCode.OK).json(order);
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
@@ -124,13 +136,13 @@ export default class OrderController {
     try {
       const paymentStatus = await this.orderUseCase.getPaymentStatus(req.params.orderId);
       if (!paymentStatus) {
-        res.status(404).json({ message: 'Payment status not found' });
+        res.status(StatusCode.NOT_FOUND).json({ message: 'Payment status not found' });
         return
       }
-      res.status(200).json(paymentStatus);
+      res.status(StatusCode.OK).json(paymentStatus);
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
@@ -139,13 +151,13 @@ export default class OrderController {
     try {
       const order = await this.orderUseCase.processRefund(req.params.orderId);
       if (!order) {
-        res.status(404).json({ message: 'Order not found' });
+        res.status(StatusCode.NOT_FOUND).json({ message: 'Order not found' });
         return
       }
-      res.status(200).json(order);
+      res.status(StatusCode.OK).json(order);
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };
@@ -154,13 +166,13 @@ export default class OrderController {
     try {
       const result = await this.orderUseCase.deleteOrder(req.params.id);
       if (!result) {
-        res.status(404).json({ message: 'Order not found' });
+        res.status(StatusCode.NOT_FOUND).json({ message: 'Order not found' });
         return
       }
-      res.status(204).send();
+      res.status(StatusCode.OK).send();
       return
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
       return
     }
   };

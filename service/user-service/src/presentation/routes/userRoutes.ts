@@ -42,17 +42,18 @@ router.get('/users', isAdmin,userController.getAll.bind(userController));
 router.use(authMiddleware);
 
 // Profile routes
-router.put('/update-profile',s3Upload.single('profileImage'),userController.updateProfile.bind(userController));
+router.put('/users/update-profile',s3Upload.single('profileImage'),userController.updateProfile.bind(userController));
 router.post('/profile/image',authMiddleware,s3Upload.single('profileImage'),userController.updateProfileImage.bind(userController));
 
 // S3 Upload route - moved to controller for better organization
-router.post('/s3/upload', userController.s3Upload.bind(userController));
+router.post('/users/s3/upload', userController.s3Upload.bind(userController));
 
 
 // User management routes
 router.put('/users/:userId', validateUserId, userController.update.bind(userController));
 router.put('/users/:userId/status', validateUserId, userController.updateStatus.bind(userController));
 router.delete('/users/:userId', validateUserId, userController.delete.bind(userController));
+router.patch('/users/:userId/wallet', validateUserId, userController.updateWallet.bind(userController));
 
 // User address routes
 router.post('/users/:userId/addresses', validateUserId, userController.addAddress.bind(userController));

@@ -15,13 +15,13 @@ export const configurePaymentRoutes = (router: Router) => {
 
   // Define routes
   // Create Stripe Payment Intent
-  router.post('/stripe/create-payment-intent', (req, res) =>
+  router.post('/orders/stripe/create-payment-intent', (req, res) =>
     paymentController.createPaymentIntent(req, res)
   );
 
   // Stripe Webhook (raw body for signature verification)
   router.post(
-    '/stripe/webhook',
+    '/orders/stripe/webhook',
     express.raw({ type: 'application/json' }),
     (req, res) => paymentController.handleWebhook(req, res)
   );

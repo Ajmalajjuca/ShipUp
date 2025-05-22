@@ -108,9 +108,30 @@ export default class OrderUseCase {
   }
 
   // Get orders by user ID
-  async getOrdersByDriversId(partnerId: string): Promise<Order[]> {
+  async getOrdersByDriversId(
+    partnerId: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+    search?: string
+  ): Promise<{
+    orders: Order[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     try {
-      return await this.orderRepository.findByDriversId(partnerId);
+      const { orders, total } = await this.orderRepository.findByDriversId(partnerId, page, limit, status, search);
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        orders,
+        total,
+        page,
+        limit,
+        totalPages,
+      };
     } catch (error) {
       console.error(`Error in getOrdersByDriversId use case for user ${partnerId}:`, error);
       throw error;

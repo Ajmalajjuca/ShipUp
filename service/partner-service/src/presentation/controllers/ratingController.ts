@@ -5,6 +5,7 @@ import { UpdateDriverRatingUseCase } from '../../domain/use-cases/driver/updateD
 import { MongoRatingRepository } from '../../infrastructure/repositories/mongoRatingRepository';
 import { MongoPartnerRepository } from '../../infrastructure/repositories/mongoPartnerRepository';
 import mongoose from 'mongoose';
+import { GetOrderRatingsUseCase } from '../../domain/use-cases/rating/getOrderRatings';
 
 // Create repository instances
 const ratingRepository = new MongoRatingRepository();
@@ -14,15 +15,17 @@ const partnerRepository = new MongoPartnerRepository();
 const createRatingUseCase = new CreateRatingUseCase(ratingRepository);
 const getDriverRatingsUseCase = new GetDriverRatingsUseCase(ratingRepository);
 const updateDriverRatingUseCase = new UpdateDriverRatingUseCase(partnerRepository);
+const getOrderRatingsUseCase = new GetOrderRatingsUseCase(ratingRepository);
 
 export const ratingController = {
   /**
    * Creates a new rating for a driver
    */
   async createRating(req: Request, res: Response): Promise<void> {
+    console.log('req.body===>', req.body);
     
     try {
-      const { driverId, userId, orderId, rating, feedback, quickReviews } = req.body;
+      const { driverId, userId, orderId, rating, feedback, quickReviews } = req.body.ratingData;
 
       // Validate required fields
       if (!driverId || !userId || !orderId || !rating) {
@@ -122,6 +125,25 @@ export const ratingController = {
       res.status(500).json({
         success: false,
         message: 'Failed to get driver ratings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  async getOrderRatings(req: Request, res: Response) {
+    console.log('req.params===>', req.params);
+    
+    try {
+      const { orderId } = req.params;
+      const result = await getOrderRatingsUseCase.execute({ orderId });
+      console.log('result===>>>', result);
+      
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error getting order ratings:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get order ratings',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }

@@ -66,4 +66,12 @@ export interface UserRepository {
    * @returns The updated user or null if not found
    */
   updateProfileImage(userId: string, profileImage: string): Promise<User | null>;
+  
+  /**
+   * Updates user wallet balance
+   * @param userId User ID
+   * @param amount New wallet balance
+   * @returns The updated user or null if not found
+   */
+  updateWalletBalance(userId: string, amount: number): Promise<User | null>;
 }

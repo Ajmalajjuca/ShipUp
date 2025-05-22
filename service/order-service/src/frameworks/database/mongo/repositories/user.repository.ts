@@ -4,15 +4,15 @@ import { UserRepository } from '../../../../domain/repositories/user.repository'
 
 
 export class HttpUserRepository implements UserRepository {
-  private baseUrl: string;
+  private API_URL: string;
 
   constructor() {
-    this.baseUrl = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+    this.API_URL = process.env.API_URL || 'http://localhost:3000/api';
   }
 
   async findById(id: string): Promise<User | null> {
     try {
-      const response = await axios.get(`${this.baseUrl}/${id}`);
+      const response = await axios.get(`${this.API_URL}/${id}`);
       console.info(`User found: ${id}`);
       return response.data.user;
     } catch (error) {
@@ -29,12 +29,21 @@ export class HttpUserRepository implements UserRepository {
     }
   }
 
-  async updateWalletBalance(userId: string, amount: number): Promise<User> {
+  async updateWalletBalance(userId: string, amount: number, token: string): Promise<User> {
+    console.log('baseurl===>',this.API_URL);
     try {
       const response = await axios.patch(
-        `${this.baseUrl}/${userId}/wallet`,
-        { amount }
+        `${this.API_URL}/users/${userId}/wallet`,
+        { amount },
+        {
+        headers: {
+          Authorization: `Bearer ${token}`, // Include the JWT token
+        },
+      }
       );
+      console.log('wallte response===>',response);
+      
+      
       console.info(`Wallet balance updated for user: ${userId}, new balance: ${response.data.user.walletBalance}`);
       return response.data.user;
     } catch (error) {

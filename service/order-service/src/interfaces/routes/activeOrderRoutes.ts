@@ -4,7 +4,7 @@ import { StoreActiveOrderUseCase } from '../../application/use-cases/active-orde
 import { GetActiveOrderUseCase } from '../../application/use-cases/active-order/GetActiveOrderUseCase';
 import { RemoveActiveOrderUseCase } from '../../application/use-cases/active-order/RemoveActiveOrderUseCase';
 import { RedisActiveOrderRepository } from '../../frameworks/database/redis/active-order-repository';
-import { authMiddleware } from '../../frameworks/webserver/middlewares/auth';
+// import { authMiddleware } from '../../frameworks/webserver/middlewares/auth';
 
 export const configureActiveOrderRoutes = (router: Router) => {
   // Create repository
@@ -27,7 +27,7 @@ export const configureActiveOrderRoutes = (router: Router) => {
    * @description Store an active order for a user
    * @access Authenticated
    */
-  router.post('/active-orders/:userId', authMiddleware, (req, res) => 
+  router.post('/active-orders/:userId', (req, res) => 
     activeOrderController.storeActiveOrder(req, res)
   );
 
@@ -36,7 +36,7 @@ export const configureActiveOrderRoutes = (router: Router) => {
    * @description Get active order for a user
    * @access Authenticated
    */
-  router.get('/active-orders/:userId', authMiddleware, (req, res) => 
+  router.get('/active-orders/:userId', (req, res) => 
     activeOrderController.getActiveOrder(req, res)
   );
 
@@ -45,7 +45,7 @@ export const configureActiveOrderRoutes = (router: Router) => {
    * @description Remove active order for a user
    * @access Authenticated
    */
-  router.delete('/active-orders/:userId', authMiddleware, (req, res) => 
+  router.delete('/active-orders/:userId', (req, res) => 
     activeOrderController.removeActiveOrder(req, res)
   );
 

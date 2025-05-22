@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { CreatePaymentIntentUseCase } from '../../application/use-cases/Payment/createPaymentIntent';
 import { HandlePaymentStatusUseCase } from '../../application/use-cases/Payment/handlePaymentStatus';
+import { StatusCode } from '../../types/StatusCode';
 
 export class PaymentController {
   constructor(
@@ -10,10 +11,11 @@ export class PaymentController {
   ) {}
 
   async createPaymentIntent(req: Request, res: Response): Promise<void> {
+    
     try {
       const { orderId, amount, currency } = req.body;
       if (!orderId || !amount || !currency) {
-        res.status(400).json({ error: 'Missing required fields' });
+        res.status(StatusCode.BAD_REQUEST).json({ error: 'Missing required fields' });
         return;
       }
 
@@ -23,12 +25,12 @@ export class PaymentController {
         currency,
       });
 
-      res.status(200).json({
+      res.status(StatusCode.OK).json({
         clientSecret: result.clientSecret,
         paymentIntentId: result.paymentIntentId,
       });
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
     }
   }
 
@@ -51,9 +53,9 @@ export class PaymentController {
         });
       }
 
-      res.status(200).json({ received: true });
+      res.status(StatusCode.OK).json({ received: true });
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ error: (error as Error).message });
     }
   }
 }

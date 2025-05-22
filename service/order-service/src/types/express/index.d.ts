@@ -1,10 +1,11 @@
 import 'express';
 import multer from 'multer';
+import { User } from '../../domain/entities/user';
 
 declare global {
   namespace Express {
     interface Request {
-      // Any custom properties you want to add to the Request object
+      user?: User;
     }
 
     // Add multer-s3 file interface

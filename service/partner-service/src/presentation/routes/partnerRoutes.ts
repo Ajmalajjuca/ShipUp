@@ -127,7 +127,7 @@ router.post('/drivers/assign-driver', partnerController.assignDriverToOrder);
 
 // Add new routes for OTP handling
 router.post('/orders/:orderId/otp', authMiddleware, partnerController.storeOrderOtp);
-router.post('/orders/:orderId/verify-otp', authMiddleware, partnerController.verifyOrderOtp);
+router.post('/drivers/orders/:orderId/verify-otp', authMiddleware, partnerController.verifyOrderOtp);
 
 // This is for order status updates sent via socket
 router.post('/orders/:orderId/status', authMiddleware, partnerController.updateOrderStatus);

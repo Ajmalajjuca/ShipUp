@@ -14,6 +14,8 @@ export const config = {
   services: {
     auth: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
     user: process.env.USER_SERVICE_URL || 'http://localhost:3002',
+    api: process.env.API_GATE_SERVICE_URL || 'http://localhost:3000',
+
   },
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',

@@ -36,7 +36,7 @@ export const authMiddleware = async (
     
     
     // Verify token with auth service
-    const response = await axios.post(`${config.services.auth}/auth/verify-token`,{}, { 
+    const response = await axios.post(`${config.services.api}/auth/verify-token`,{}, { 
       headers: { Authorization: `Bearer ${token}` }
     }
     );

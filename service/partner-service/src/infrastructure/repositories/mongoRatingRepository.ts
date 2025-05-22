@@ -50,6 +50,8 @@ export class MongoRatingRepository implements RatingRepository {
 
   async getByOrderId(orderId: string): Promise<Rating | null> {
     const rating = await RatingModel.findOne({ orderId });
+    console.log('rating===>', rating);
+    
     return rating ? this.mapToEntity(rating) : null;
   }
 

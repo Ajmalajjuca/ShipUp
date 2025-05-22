@@ -3,10 +3,7 @@ import DriverModel from '../../infrastructure/database/models/driverModel';
 import { Order } from '../entities/order';
 import { LocationCoordinates } from '../entities/location';
 
-// Add a declaration for the global io socket object
-declare global {
-  var io: any;
-}
+// Removed invalid SocketIOClientStatic import and global declaration
 
 // Define driver location result type
 interface DriverWithDistance {
@@ -167,7 +164,7 @@ export class PartnerService {
    */
   async getOrderDetails(orderId: string): Promise<Order | null> {
     try {
-      const response = await axios.get(`${process.env.ORDER_SERVICE_URL || 'http://localhost:3004'}/api/orders/${orderId}`);
+      const response = await axios.get(`${process.env.API_GATE_SERVICE_URL || 'http://localhost:3000'}/api/orders/${orderId}`);
       return response.data;
     } catch (error) {
       console.error('Error getting order details:', error);

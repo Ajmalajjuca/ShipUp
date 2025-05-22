@@ -1,4 +1,14 @@
 {
+  "name": "my-project",
+  "private": true,
+  "workspaces": [
+    "service/api-gateway",
+    "service/authentication-service",
+    "service/user-service",
+    "service/partner-service",
+    "service/order-service",
+    "frontend"
+  ],
   "dependencies": {
     "@aws-sdk/client-s3": "^3.775.0",
     "@aws-sdk/s3-request-presigner": "^3.775.0",
@@ -7,6 +17,7 @@
     "@types/leaflet": "^1.9.17",
     "@types/validator": "^13.15.0",
     "git": "^0.1.5",
+    "jsonwebtoken": "^9.0.2",
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "multer-s3": "^3.0.1",
@@ -14,6 +25,10 @@
     "validator": "^13.15.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.1"
+    "@types/node": "^22.14.1",
+    "concurrently": "^9.1.2"
+  },
+  "scripts": {
+    "dev": "concurrently -n gateway,auth,user,partner,order,frontend -c cyan,blue,green,yellow,magenta,white \"npm run dev --workspace api-gateway\" \"npm run dev --workspace authentication-service\" \"npm run dev --workspace user-service\" \"npm run dev --workspace partner-service\" \"npm run dev --workspace order-service\" \"npm run dev --workspace frontend\""
   }
 }

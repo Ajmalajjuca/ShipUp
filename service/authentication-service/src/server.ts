@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import authRoutes from './presentation/routes/authRoutes';
 import { connectDB } from './infrastructure/database/mongoose';
 import dotenv from 'dotenv';
@@ -30,18 +29,12 @@ app.use(express.json()); // Add JSON body parser
 app.use(express.urlencoded({ extended: true })); // Add URL-encoded body parser
 app.use(morgan('dev')); 
 
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
 
 // Database connection
 connectDB();
 
 // Routes
-app.use('/auth', authRoutes);
+app.use('/', authRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

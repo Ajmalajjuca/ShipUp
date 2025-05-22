@@ -9,5 +9,6 @@ router.post('/ratings', ratingController.createRating);
 
 // Get ratings for a driver
 router.get('/drivers/:driverId/ratings', ratingController.getDriverRatings);
+router.get('/drivers/orders/:orderId/ratings', ratingController.getOrderRatings);
 
 export default router; 

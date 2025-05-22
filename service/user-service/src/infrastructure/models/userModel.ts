@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema<User>({
     type: [String],
     default: []
   },
+  walletBalance: {
+    type: Number,
+    default: 0
+  },
   onlineStatus: {
     type: Boolean,
     default: false

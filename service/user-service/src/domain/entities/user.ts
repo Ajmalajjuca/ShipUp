@@ -5,6 +5,7 @@ export class User {
     public phone: string,
     public email: string,
     public addresses: string[],
+    public walletBalance: number,
     public onlineStatus: boolean,
     public isVerified: boolean,
     public referralId: string,

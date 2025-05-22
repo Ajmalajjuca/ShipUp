@@ -70,6 +70,11 @@ export interface UserStatusResponse extends BaseResponse {
   status: boolean;
 }
 
+export interface UpdateWalletResponse extends BaseResponse {
+  userId: string;
+  user: object;
+}
+
 export interface AddressResponse extends BaseResponse {
   address: {
     addressId: string;

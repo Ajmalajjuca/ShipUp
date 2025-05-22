@@ -1,6 +1,5 @@
 import express from 'express';
 import http from 'http';
-import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { config } from './infrastructure/config';
@@ -14,7 +13,6 @@ import { initializeInactivityChecker } from './infrastructure/cron/inactivityChe
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -24,8 +22,8 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 
 // Routes
-app.use('/api', partnerRoutes);
-app.use('/api', ratingRoutes);
+app.use('/', partnerRoutes);
+app.use('/', ratingRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -20,13 +20,15 @@ export const configureWalletRoutes = (router: Router) => {
     walletController.createPaymentIntent(req, res)
   );
 
-  router.post('/wallet/add-money', (req, res) =>
+  router.post('/wallet/add-money/:userId', (req, res) =>
     walletController.addMoney(req, res)
   );
 
-  router.get('/wallet/transactions', (req, res) =>
+  router.get('/wallet/transactions/:userId', (req, res) =>
     walletController.getTransactions(req, res)
   );
+
+
 
   return router;
 };

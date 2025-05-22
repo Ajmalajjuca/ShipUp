@@ -15,6 +15,10 @@ export class StripeServiceImpl implements StripeService {
     console.log('input===>',input);
     
     try {
+      if (input.currency === 'inr' && input.amount < 5000) {
+  throw new Error('Minimum payment amount for INR is ₹50 (5000 paise)');
+}
+
       const paymentIntent = await this.stripe.paymentIntents.create({
         amount: input.amount,
         currency: input.currency,
@@ -29,6 +33,9 @@ export class StripeServiceImpl implements StripeService {
         client_secret: paymentIntent.client_secret!,
       };
     } catch (error) {
+      if (error instanceof Stripe.errors.StripeInvalidRequestError) {
+      throw new Error(`Invalid request to Stripe: ${error.message}`);
+    }
       throw new Error(`Failed to create Payment Intent: ${(error as Error).message}`);
     }
   }

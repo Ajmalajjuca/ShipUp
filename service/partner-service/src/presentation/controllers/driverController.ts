@@ -1140,7 +1140,7 @@ export const partnerController = {
   },
   
   // Verify OTP for order
-  async verifyOrderOtp(req: Request, res: Response) {
+  async verifyOrderOtp(req: Request, res: Response) {    
     try {
       const { orderId } = req.params;
       const { type, otp, partnerId } = req.body;

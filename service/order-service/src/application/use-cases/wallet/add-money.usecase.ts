@@ -9,7 +9,7 @@ export class AddMoneyUseCase {
     private userRepository: UserRepository
   ) {}
 
-  async execute(userId: string, dto: AddMoneyDto): Promise<void> {
+  async execute(userId: string, dto: AddMoneyDto, token: string): Promise<void> {
     const { amount, paymentIntentId } = dto;
 
     if (amount <= 0) {
@@ -17,7 +17,7 @@ export class AddMoneyUseCase {
     }
 
     // Update user wallet balance
-    await this.userRepository.updateWalletBalance(userId, amount);
+    await this.userRepository.updateWalletBalance(userId, amount, token);
 
     // Create transaction
     const transaction: Transaction = {

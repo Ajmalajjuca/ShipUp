@@ -126,4 +126,21 @@ export class UserRepositoryImpl implements UserRepository {
       return null;
     }
   }
+
+  async updateWalletBalance(userId: string, amount: number): Promise<User | null> {
+    try {
+
+      
+      const updatedUser = await UserModel.findOneAndUpdate(
+      { userId },
+      { $inc: { walletBalance: amount } }, // Use the numeric amount directly
+      { new: true, upsert: true }
+      );
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating wallet balance:', error);
+      return null;
+    }
+  }
 }

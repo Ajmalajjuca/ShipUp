@@ -4,6 +4,7 @@ import { Order, OrderStatus, PaymentStatus, TrackingStatus } from '../../../../d
 import { OrderModel } from '../schemas/orderSchema';
 
 export class MongoOrderRepository implements OrderRepository {
+  private validStatuses = ['pending', 'in-progress', 'completed', 'cancelled'];
   async create(order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
     try {
       // Create new order document
@@ -62,15 +63,52 @@ export class MongoOrderRepository implements OrderRepository {
     }
   }
 
-  async findByDriversId(partnerId: string): Promise<Order[]> {
+async findByDriversId(
+    partnerId: string,
+    page: number = 1,
+    limit: number = 10,
+    status?: string,
+    search?: string
+  ): Promise<{ orders: Order[]; total: number }> {
     try {
-      const orders = await OrderModel.find({ driverId: partnerId }).sort({ createdAt: -1 });      
-      return orders.map(order => this.mapToOrderEntity(order));
+      const query: any = { driverId: partnerId };
+
+      // Apply status filter
+      if (status && status !== 'all' && this.validStatuses.includes(status)) {
+        query.status = status;
+      }
+
+      // Apply search filter
+      if (search) {
+        query.$or = [
+          { id: { $regex: search, $options: 'i' } },
+          { 'pickupAddress.street': { $regex: search, $options: 'i' } },
+          { 'dropoffAddress.street': { $regex: search, $options: 'i' } },
+        ];
+      }
+
+      // Get total count
+      const total = await OrderModel.countDocuments(query);
+
+      // Get paginated orders
+      let ordersQuery = OrderModel.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+
+      // Ensure only valid statuses are returned
+      ordersQuery = ordersQuery.where('status').in(this.validStatuses);
+
+      const orders = await ordersQuery.exec();
+
+      return {
+        orders: orders.map(order => this.mapToOrderEntity(order)),
+        total,
+      };
     } catch (error) {
       console.error(`Error finding orders for user ${partnerId}:`, error);
       throw error;
     }
   }
+
+
 
   async findAll(): Promise<Order[]> {
     try {
@@ -297,29 +335,37 @@ export class MongoOrderRepository implements OrderRepository {
 
   // Helper method to map MongoDB document to domain entity
   private mapToOrderEntity(document: any): Order {
-    const order = document.toJSON ? document.toJSON() : document;
-    
-    return {
-      id: order.id || order._id.toString(),
-      customerId: order.customerId,
-      driverId: order.driverId,
-      totalAmount: order.totalAmount,
-      status: order.status,
-      vehicleId: order.vehicleId,
-      vehicleName: order.vehicleName,
-      basePrice: order.basePrice,
-      deliveryPrice: order.deliveryPrice,
-      commission: order.commission,
-      gst: order.gst,
-      distance: order.distance,
-      estimatedTime: order.estimatedTime, 
-      deliveryType: order.deliveryType,
-      paymentMethod: order.paymentMethod,
-      paymentStatus:order.paymentStatus,
-      pickupAddress: order.pickupAddress,
-      dropoffAddress: order.dropoffAddress,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt
-    };
-  }
+  const order = document.toJSON ? document.toJSON() : document;
+
+  return {
+    id: order.id || order._id.toString(),
+    customerId: order.customerId,
+    driverId: order.driverId,
+    status: this.validStatuses.includes(order.status) ? order.status : 'cancelled',
+    totalAmount: order.totalAmount,
+    vehicleId: order.vehicleId,
+    vehicleName: order.vehicleName,
+    basePrice: order.basePrice,
+    deliveryPrice: order.deliveryPrice,
+    commission: order.commission,
+    gst: order.gst,
+    distance: order.distance,
+    estimatedTime: order.estimatedTime,
+    deliveryType: order.deliveryType,
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus,
+    pickupAddress: {
+      street: order.pickupAddress.street,
+      latitude: order.pickupAddress.latitude,
+      longitude: order.pickupAddress.longitude,
+    },
+    dropoffAddress: {
+      street: order.dropoffAddress.street,
+      latitude: order.dropoffAddress.latitude,
+      longitude: order.dropoffAddress.longitude,
+    },
+    createdAt: order.createdAt ? new Date(order.createdAt) : new Date(),
+    updatedAt: order.updatedAt ? new Date(order.updatedAt) : new Date(),
+  };
+}
 } 

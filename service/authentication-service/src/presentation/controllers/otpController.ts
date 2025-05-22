@@ -168,6 +168,8 @@ export class OtpController {
   }
 
   async requestLoginOtp(req: Request, res: Response): Promise<void> {
+    console.log('Requesting login OTP...');
+    
     try {
       const { email } = req.body as OtpRequest;
       
@@ -196,10 +198,12 @@ export class OtpController {
         }
 
         // Check driver status in partner service
-        const partnerServiceUrl = process.env.PARTNER_SERVICE_URL || '';
+        const apiGateServiceUrl = process.env.API_GATE_SERVICE_URL || '';
         const driverResponse = await axios.get(
-          `${partnerServiceUrl}/drivers/${authUser.userId}`
+          `${apiGateServiceUrl}/api/partners/drivers/${authUser.userId}`
         );
+        console.log(`Driver response: ${JSON.stringify(driverResponse.data)}`);
+        
         
         if (driverResponse.data.partner && !driverResponse.data.partner.status) {
           ResponseHandler.error(
@@ -211,6 +215,8 @@ export class OtpController {
           return;
         }
       } catch (error: any) {
+        console.log('Error checking driver status:', error);
+        
         ResponseHandler.notFound(
           res, 
           error.response?.data.error || ErrorMessage.DRIVER_NOT_FOUND

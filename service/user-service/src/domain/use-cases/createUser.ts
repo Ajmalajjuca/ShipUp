@@ -22,8 +22,9 @@ export class CreateUser {
         data.userId,
         data.fullName,
         data.phone,
-        data.email,
-        [],          // addresses (default empty array)
+        data.email,           // wallet (default 0)
+        [],
+        0,          // addresses (default empty array)
         false,       // onlineStatus (default)
         false,       // isVerified (default)
         referralId,

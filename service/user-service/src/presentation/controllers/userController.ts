@@ -26,7 +26,8 @@ import {
   UsersResponse,
   UpdateProfileResponse,
   DeleteUserResponse,
-  UserStatusResponse
+  UserStatusResponse,
+  UpdateWalletResponse
 } from '../../types/interfaces/responses';
 import { AddAddress } from '../../domain/use-cases/addAddress';
 import { AddressRepository } from '../../domain/repositories/addressRepository';
@@ -97,6 +98,7 @@ export class UserController {
   }
 
   async get(req: Request, res: Response): Promise<void> {
+    
     const { userId } = req.params;
     try {
       
@@ -856,6 +858,60 @@ export class UserController {
         success: true,
         message: 'Address set as default successfully',
         address: updatedAddress
+      };
+      
+      ResponseHandler.success(res, response);
+    } catch (error) {
+      ResponseHandler.handleError(res, error);
+    }
+  }
+
+  async updateWallet(req: Request, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const {amount} = req.body ;
+
+      if (!amount || typeof amount !== 'number' || amount <= 0) {
+       res.status(400).json({
+        success: false,
+        error: 'Invalid amount. Must be a positive number.',
+        errorCode: 'INVALID_AMOUNT',
+      });
+      return;
+    }
+      
+      if (!userId) {
+        ResponseHandler.validationError(res, 'User ID is required');
+        return;
+      }
+
+      // Check if user exists
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        ResponseHandler.notFound(res, ErrorMessage.USER_NOT_FOUND);
+        return;
+      }
+
+      // Make sure the user owns this wallet (security check)
+      if (req.user && user.userId !== req.user.userId) {
+        ResponseHandler.forbidden(res, 'You do not have permission to update this wallet');
+        return;
+      }
+
+      const updateduser = await this.userRepository.updateWalletBalance(userId, amount);
+      console.log('updateduser===>',updateduser);
+      
+      
+      if (!updateduser) {
+        ResponseHandler.notFound(res, 'Wallet not found');
+        return;
+      }
+
+      const response: UpdateWalletResponse = {
+        success: true,
+        userId,
+        message: 'Wallet updated successfully',
+        user: updateduser
       };
       
       ResponseHandler.success(res, response);

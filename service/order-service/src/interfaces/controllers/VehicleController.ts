@@ -8,6 +8,7 @@ import { ToggleVehicleStatusUseCase } from '../../application/use-cases/vehicle/
 import { CreateVehicleDTO, UpdateVehicleDTO, VehicleFilterDTO } from '../../application/dtos/VehicleDTO';
 import { VehicleType } from '../../domain/entities/Vehicle';
 import { deleteImageFromS3 } from '../../frameworks/storage/s3/config';
+import { StatusCode } from '../../types/StatusCode';
 
 export class VehicleController {
   private createVehicleUseCase: CreateVehicleUseCase;
@@ -48,13 +49,13 @@ export class VehicleController {
       const result = await this.createVehicleUseCase.execute(vehicleData);
       
       if (result.success) {
-        res.status(201).json(result);
+        res.status(StatusCode.CREATED).json(result);
       } else {
         // If creation failed but we uploaded an image, we should delete it
         if (req.body.imageUrl) {
           await deleteImageFromS3(req.body.imageUrl);
         }
-        res.status(400).json(result);
+        res.status(StatusCode.BAD_REQUEST).json(result);
       }
     } catch (error) {
       console.error('Error in createVehicle controller:', error);
@@ -62,7 +63,7 @@ export class VehicleController {
       if (req.body.imageUrl) {
         await deleteImageFromS3(req.body.imageUrl);
       }
-      res.status(500).json({
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Internal server error'
       });
@@ -104,10 +105,10 @@ export class VehicleController {
       
       const result = await this.getVehiclesUseCase.execute(filters);
       
-      res.status(200).json(result);
+      res.status(StatusCode.OK).json(result);
     } catch (error) {
       console.error('Error in getVehicles controller:', error);
-      res.status(500).json({
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Internal server error',
         vehicles: [],
@@ -123,13 +124,13 @@ export class VehicleController {
       const result = await this.getVehicleByIdUseCase.execute(id);
       
       if (result.success) {
-        res.status(200).json(result);
+        res.status(StatusCode.OK).json(result);
       } else {
-        res.status(404).json(result);
+        res.status(StatusCode.NOT_FOUND).json(result);
       }
     } catch (error) {
       console.error(`Error in getVehicleById controller for id ${req.params.id}:`, error);
-      res.status(500).json({
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Internal server error'
       });
@@ -162,13 +163,13 @@ export class VehicleController {
         if (oldImageUrl && req.body.imageUrl && oldImageUrl !== req.body.imageUrl) {
           await deleteImageFromS3(oldImageUrl);
         }
-        res.status(200).json(result);
+        res.status(StatusCode.OK).json(result);
       } else {
         // If update failed but we uploaded a new image, delete it
         if (req.body.imageUrl && req.body.imageUrl !== oldImageUrl) {
           await deleteImageFromS3(req.body.imageUrl);
         }
-        res.status(404).json(result);
+        res.status(StatusCode.BAD_REQUEST).json(result);
       }
     } catch (error) {
       console.error(`Error in updateVehicle controller for id ${req.params.id}:`, error);
@@ -177,7 +178,7 @@ export class VehicleController {
       if (req.body.imageUrl && req.body.imageUrl !== existingVehicle.vehicle?.imageUrl) {
         await deleteImageFromS3(req.body.imageUrl);
       }
-      res.status(500).json({
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Internal server error'
       });
@@ -200,13 +201,13 @@ export class VehicleController {
       }
       
       if (result.success) {
-        res.status(200).json(result);
+        res.status(StatusCode.OK).json(result);
       } else {
-        res.status(404).json(result);
+        res.status(StatusCode.NOT_FOUND).json(result);
       }
     } catch (error) {
       console.error(`Error in deleteVehicle controller for id ${req.params.id}:`, error);
-      res.status(500).json({
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Internal server error'
       });
@@ -220,13 +221,13 @@ export class VehicleController {
       const result = await this.toggleVehicleStatusUseCase.execute(id);
       
       if (result.success) {
-        res.status(200).json(result);
+        res.status(StatusCode.OK).json(result);
       } else {
-        res.status(404).json(result);
+        res.status(StatusCode.NOT_FOUND).json(result);
       }
     } catch (error) {
       console.error(`Error in toggleVehicleStatus controller for id ${req.params.id}:`, error);
-      res.status(500).json({
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Internal server error'
       });

@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import path from 'path';
 import { routes } from './frameworks/webserver/routes';
 import { errorHandler } from './frameworks/webserver/middlewares/error-handler';
@@ -14,8 +13,6 @@ export const startServer = () => {
   const PORT = process.env.PORT || 3004;
 
   // Set up middleware
-  app.use(cors());
-
   app.use(morgan('dev')); // Logging middleware for development
   
   // Increase JSON payload size limit to 50MB
@@ -29,7 +26,7 @@ export const startServer = () => {
   }));
 
   // Routes
-  app.use('/api', routes());
+  app.use('/', routes());
 
   // Health check endpoint
   app.get('/health', (req, res) => {
